@@ -1,0 +1,22 @@
+package com.loopers.application.users;
+
+import com.loopers.domain.users.UserModel;
+import com.loopers.domain.users.UserService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+import java.time.LocalDate;
+
+@RequiredArgsConstructor
+@Component
+public class UserFacade {
+
+    private final UserService userService;
+
+    public UserInfo saveUser(String userId, String gender, String birthDate,String email) {
+        UserModel userModel = userService.saveUser(userId, gender, birthDate, email);
+
+        return UserInfo.from(userModel);
+    }
+
+}
