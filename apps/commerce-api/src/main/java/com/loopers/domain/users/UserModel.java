@@ -3,8 +3,10 @@ package com.loopers.domain.users;
 import com.loopers.domain.BaseEntity;
 import com.loopers.support.error.CoreException;
 import com.loopers.support.error.ErrorType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -13,9 +15,14 @@ import java.time.format.DateTimeParseException;
 @Table(name = "users")
 public class UserModel extends BaseEntity {
 
+    @NotNull
+    @Column(name = "user_id")
     private String userId;
+    @NotNull
     private String gender;
+    @NotNull
     private LocalDate birthDate;
+    @NotNull
     private String email;
 
     public String getuserId() {
