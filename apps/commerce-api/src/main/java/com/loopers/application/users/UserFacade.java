@@ -18,4 +18,12 @@ public class UserFacade {
         return UserInfo.from(userModel);
     }
 
+    public UserInfo getMyInfo(String userId) {
+
+        UserModel userModel = userService.getMyInfo(userId);
+
+        return UserInfo.from(userModel);
+
+    }
+
 }

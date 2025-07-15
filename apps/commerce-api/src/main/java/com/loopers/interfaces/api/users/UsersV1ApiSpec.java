@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 @Tag(name = "Users V1 API", description = "회원가입, 내 정보 조회 API 입니다.")
 public interface UsersV1ApiSpec {
@@ -24,9 +25,9 @@ public interface UsersV1ApiSpec {
             summary = "내 정보 조회",
             description = "ID로 회원 정보를 조회합니다."
     )
-    ApiResponse<UsersV1Dto.UsersResponse> getUserInfo(
+    ApiResponse<UsersV1Dto.UsersResponse> getMyInfo(
             @Schema(name = "예시 ID", description = "조회할 예시의 ID")
-            Long exampleId
+            @RequestHeader("X-USER-ID") String userId
     );
 
 }

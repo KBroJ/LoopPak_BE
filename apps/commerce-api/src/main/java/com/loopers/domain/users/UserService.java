@@ -24,4 +24,11 @@ public class UserService {
         return userRepository.save(userModel);
     }
 
+    @Transactional(readOnly = true)
+    public UserModel getMyInfo(String userId) {
+
+        return userRepository.findByUserId(userId).orElse(null);
+
+    }
+
 }

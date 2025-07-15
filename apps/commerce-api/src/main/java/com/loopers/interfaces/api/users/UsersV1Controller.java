@@ -16,7 +16,7 @@ public class UsersV1Controller implements UsersV1ApiSpec {
     @PostMapping
     @Override
     public ApiResponse<UsersV1Dto.UsersResponse> saveUser(
-            @RequestBody UsersV1Dto.UsersSaveRequest request
+        @RequestBody UsersV1Dto.UsersSaveRequest request
     ) {
         UserInfo info = userFacade.saveUser(
             request.userId(), request.gender(), request.birthDate(), request.email()
@@ -29,8 +29,14 @@ public class UsersV1Controller implements UsersV1ApiSpec {
 
     @GetMapping("/me")
     @Override
-    public ApiResponse<UsersV1Dto.UsersResponse> getUserInfo(Long exampleId) {
-        return null;
+    public ApiResponse<UsersV1Dto.UsersResponse> getMyInfo(
+        @RequestHeader("X-USER-ID") String userId
+    ) {
+        UserInfo info = userFacade.getMyInfo(userId);
+
+        UsersV1Dto.UsersResponse response = UsersV1Dto.UsersResponse.from(info);
+
+        return ApiResponse.success(response);
     }
 
 
