@@ -15,4 +15,9 @@ public class UserRepositoryImpl implements UserRepository {
     public UserModel save(UserModel userModel) {
         return userJpaRepository.save(userModel);
     }
+
+    @Override
+    public boolean existsByUserId(String userId) {
+        return userJpaRepository.existsByUserId(userId);
+    }
 }

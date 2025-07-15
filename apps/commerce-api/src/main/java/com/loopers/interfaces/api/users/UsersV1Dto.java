@@ -1,8 +1,6 @@
 package com.loopers.interfaces.api.users;
 
-import com.loopers.application.example.ExampleInfo;
 import com.loopers.application.users.UserInfo;
-import com.loopers.interfaces.api.example.ExampleV1Dto;
 
 import java.time.LocalDate;
 
