@@ -115,7 +115,7 @@ class UserServiceIntegrationTest {
             assertAll(
                 () -> assertThat(result).isNotNull(),
                 () -> assertThat(result.getId()).isNotNull(),
-                () -> assertThat(result.getuserId()).isEqualTo(VALID_USER_ID),
+                () -> assertThat(result.getUserId()).isEqualTo(VALID_USER_ID),
                 () -> assertThat(result.getGender()).isEqualTo(VALID_GENDER),
                 () -> assertThat(result.getBirthDate()).isEqualTo(VALID_BIRTH_DATE),
                 () -> assertThat(result.getEmail()).isEqualTo(VALID_EMAIL)

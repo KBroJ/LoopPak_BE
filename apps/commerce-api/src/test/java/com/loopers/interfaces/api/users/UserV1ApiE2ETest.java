@@ -72,14 +72,14 @@ public class UserV1ApiE2ETest {
         void returnCreatedUserInfo_whenSuccessSaveUser() {
             // arrange
             String requestUrl = "/api/v1/users";
-            UsersV1Dto.UsersSaveRequest requsest = new UsersV1Dto.UsersSaveRequest(
+            UsersV1Dto.UsersSaveRequest request = new UsersV1Dto.UsersSaveRequest(
                 USER_ID, GENDER, BIRTH_DATE, EMAIL
             );
 
             // act
             ParameterizedTypeReference<ApiResponse<UsersV1Dto.UsersResponse>> responseType = new ParameterizedTypeReference<>() {};
             ResponseEntity<ApiResponse<UsersV1Dto.UsersResponse>> response =
-                    testRestTemplate.exchange(requestUrl, HttpMethod.POST, new HttpEntity<>(requsest), responseType);
+                    testRestTemplate.exchange(requestUrl, HttpMethod.POST, new HttpEntity<>(request), responseType);
 
             // assert
             assertAll(
@@ -97,14 +97,14 @@ public class UserV1ApiE2ETest {
         void throwsBadRequest_whenGenderIsNotExist() {
             // arrange
             String requestUrl = "/api/v1/users";
-            UsersV1Dto.UsersSaveRequest requsest = new UsersV1Dto.UsersSaveRequest(
+            UsersV1Dto.UsersSaveRequest request = new UsersV1Dto.UsersSaveRequest(
                     USER_ID, null, BIRTH_DATE, EMAIL
             );
 
             // act
             ParameterizedTypeReference<ApiResponse<UsersV1Dto.UsersResponse>> responseType = new ParameterizedTypeReference<>() {};
             ResponseEntity<ApiResponse<UsersV1Dto.UsersResponse>> response =
-                    testRestTemplate.exchange(requestUrl, HttpMethod.POST, new HttpEntity<>(requsest), responseType);
+                    testRestTemplate.exchange(requestUrl, HttpMethod.POST, new HttpEntity<>(request), responseType);
 
             // assert
             assertAll(

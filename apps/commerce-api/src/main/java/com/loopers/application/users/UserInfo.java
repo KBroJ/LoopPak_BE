@@ -11,7 +11,7 @@ public record UserInfo(
     public static UserInfo from(UserModel model) {
         return new UserInfo(
             model.getId(),
-            model.getuserId(),
+            model.getUserId(),
             model.getGender(),
             model.getBirthDate(),
             model.getEmail()
