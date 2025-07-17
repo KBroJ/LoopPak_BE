@@ -11,15 +11,6 @@ import org.springframework.web.bind.annotation.*;
 public class PointsV1Controller implements PointsV1ApiSpec{
 
     @Override
-    @PostMapping("/charge")
-    public ApiResponse<UsersV1Dto.UsersResponse> chargePoint(
-            @RequestHeader("X-USER-ID")  String userId,
-            @RequestBody PointsV1Dto.PointRequest request
-    ) {
-        return null;
-    }
-
-    @Override
     @GetMapping
     public ApiResponse<PointsV1Dto.PointResponse> getPointInfo(
             @RequestHeader("X-USER-ID")  String userId
@@ -30,5 +21,15 @@ public class PointsV1Controller implements PointsV1ApiSpec{
                 new PointsV1Dto.PointResponse(100L)
         );
     }
+
+    @Override
+    @PostMapping("/charge")
+    public ApiResponse<UsersV1Dto.UsersResponse> chargePoint(
+            @RequestHeader("X-USER-ID")  String userId,
+            @RequestBody PointsV1Dto.PointRequest request
+    ) {
+        return null;
+    }
+
 
 }

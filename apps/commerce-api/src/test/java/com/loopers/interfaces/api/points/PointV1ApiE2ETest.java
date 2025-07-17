@@ -16,10 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -102,12 +99,17 @@ public class PointV1ApiE2ETest {
 
             // act
             ParameterizedTypeReference<ApiResponse<UsersV1Dto.UsersResponse>> responseType = new ParameterizedTypeReference<>() {};
-//            ResponseEntity<ApiResponse<UsersV1Dto.UsersResponse>> response =
-//                    testRestTemplate.exchange(requestUrl, HttpMethod.GET, new HttpEntity<>(requsest), responseType);
+            ResponseEntity<ApiResponse<UsersV1Dto.UsersResponse>> response =
+                    testRestTemplate.exchange(requestUrl, HttpMethod.GET, new HttpEntity<>(null, null), responseType);
+
+            System.out.println("예외처리 응답 상태 코드: " + response.getStatusCode());
+            System.out.println("예외처리 응답 본문: " + response.getBody());
 
             // assert
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
 
         }
+
 
     }
 
