@@ -1,10 +1,11 @@
 package com.loopers.domain.points;
 
-import com.loopers.application.users.UserInfo;
 import com.loopers.domain.users.UserModel;
 import com.loopers.domain.users.UserRepository;
 import com.loopers.domain.users.UserService;
 import com.loopers.infrastructure.points.PointJpaRepository;
+import com.loopers.support.error.CoreException;
+import com.loopers.support.error.ErrorType;
 import com.loopers.utils.DatabaseCleanUp;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -24,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
  *      - [X]  해당 ID 의 회원이 존재하지 않을 경우, null 이 반환된다.
  *
  *   2. 포인트 충전
- *      - [ ]  존재하지 않는 유저 ID 로 충전을 시도한 경우, 실패한다.
+ *      - [X]  존재하지 않는 유저 ID 로 충전을 시도한 경우, 실패한다.
  *
  */
 @SpringBootTest
@@ -70,12 +71,11 @@ class PointServiceIntegrationTest {
                 () -> assertThat(userPoint.getPoint()).isEqualTo(pointInfo.getPoint())
             );
 
-
         }
 
         @DisplayName("해당 ID 의 회원이 존재하지 않을 경우, null 이 반환된다.")
         @Test
-        void getPointInfo_whenUserNotExists() {
+        void returnNull_whenGetPointInfoForUserNotExists() {
 
             // arrange
             String userId = "noExistUsr";
@@ -96,16 +96,20 @@ class PointServiceIntegrationTest {
 
         @DisplayName("존재하지 않는 유저 ID 로 충전을 시도한 경우, 실패한다.")
         @Test
-        void chargePoint_whenUserNotExists() {
+        void failchargePoint_whenUserNotExists() {
 
             // arrange
-
+            String userId = "noExistUsr";
 
             // act
+            CoreException exception = assertThrows(CoreException.class, () -> {
+                pointService.ChargePoint(userId, 100L);
+            });
 
+            System.out.println("예외 메시지: " + exception.getMessage());
 
             // assert
-
+            assertThat(exception.getErrorType()).isEqualTo(ErrorType.NOT_FOUND);
 
         }
 
