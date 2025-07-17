@@ -25,7 +25,7 @@ public class UserModel extends BaseEntity {
     @NotNull
     private String email;
 
-    public String getuserId() {
+    public String getUserId() {
         return userId;
     }
     public String getGender() {
