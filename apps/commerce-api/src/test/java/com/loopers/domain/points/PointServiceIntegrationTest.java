@@ -103,7 +103,7 @@ class PointServiceIntegrationTest {
 
             // act
             CoreException exception = assertThrows(CoreException.class, () -> {
-                pointService.ChargePoint(userId, 100L);
+                pointService.chargePoint(userId, 100L);
             });
 
             System.out.println("예외 메시지: " + exception.getMessage());
