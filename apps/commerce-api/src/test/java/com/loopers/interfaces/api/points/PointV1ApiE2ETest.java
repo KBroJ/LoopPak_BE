@@ -122,14 +122,33 @@ public class PointV1ApiE2ETest {
         void returnAllChargedPoints_whenChargePoints() {
 
             // arrange
+            UserModel userModel = new UserModel(
+                    "testUser", "MALE", "2025-07-15", "test@test.com"
+            );
+            UserModel user = userJpaRepository.save(userModel);
+
+            PointModel pointModel = new PointModel(
+                    user, 0L
+            );
+            pointJpaRepository.save(pointModel);
+
             String requestUrl = "/api/v1/points/charge";
+            var headers = new HttpHeaders();
+            headers.set("X-USER-ID", user.getuserId());
+            PointsV1Dto.PointRequest request = new  PointsV1Dto.PointRequest(
+                    1000L
+            );
+
 
             // act
-            ParameterizedTypeReference<ApiResponse<UsersV1Dto.UsersResponse>> responseType = new ParameterizedTypeReference<>() {};
-//            ResponseEntity<ApiResponse<UsersV1Dto.UsersResponse>> response =
-//                    testRestTemplate.exchange(requestUrl, HttpMethod.POST, new HttpEntity<>(requsest), responseType);
+            ParameterizedTypeReference<ApiResponse<PointsV1Dto.PointResponse>> responseType = new ParameterizedTypeReference<>() {};
+            ResponseEntity<ApiResponse<PointsV1Dto.PointResponse>> response =
+                    testRestTemplate.exchange(requestUrl, HttpMethod.POST, new HttpEntity<>(request, headers), responseType);
+
 
             // assert
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody().data().totalPoint()).isEqualTo(1000L);
 
         }
 
@@ -139,13 +158,24 @@ public class PointV1ApiE2ETest {
 
             // arrange
             String requestUrl = "/api/v1/points/charge";
+            var headers = new HttpHeaders();
+            headers.set("X-USER-ID", "noExistUsr");
+            PointsV1Dto.PointRequest request = new  PointsV1Dto.PointRequest(
+                    1000L
+            );
+
 
             // act
-            ParameterizedTypeReference<ApiResponse<UsersV1Dto.UsersResponse>> responseType = new ParameterizedTypeReference<>() {};
-//            ResponseEntity<ApiResponse<UsersV1Dto.UsersResponse>> response =
-//                    testRestTemplate.exchange(requestUrl, HttpMethod.POST, new HttpEntity<>(requsest), responseType);
+            ParameterizedTypeReference<ApiResponse<PointsV1Dto.PointResponse>> responseType = new ParameterizedTypeReference<>() {};
+            ResponseEntity<ApiResponse<PointsV1Dto.PointResponse>> response =
+                    testRestTemplate.exchange(requestUrl, HttpMethod.POST, new HttpEntity<>(request, headers), responseType);
+
+            System.out.println("예외처리 응답 상태 코드: " + response.getStatusCode());
+            System.out.println("예외처리 응답 본문: " + response.getBody());
+
 
             // assert
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
 
         }
 

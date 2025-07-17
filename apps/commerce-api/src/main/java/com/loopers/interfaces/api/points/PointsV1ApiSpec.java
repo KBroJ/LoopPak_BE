@@ -11,17 +11,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 public interface PointsV1ApiSpec {
 
     @Operation(
-            summary = "포인트 충전",
-            description = "ID로 포인트를 충전하고 포인트 보유 총량을 반환합니다."
-    )
-    ApiResponse<UsersV1Dto.UsersResponse> chargePoint(
-            @Schema(name = "예시 ID", description = "조회할 예시의 ID")
-            @RequestHeader("X-USER-ID") String userId,
-            @Schema(name = "예시 ID", description = "조회할 예시의 ID")
-            PointsV1Dto.PointRequest request
-    );
-
-    @Operation(
             summary = "포인트 조회",
             description = "헤더의 X-USER-ID로 들어오는 ID로 포인트를 조회합니다."
     )
@@ -30,5 +19,15 @@ public interface PointsV1ApiSpec {
             @RequestHeader("X-USER-ID") String userId
     );
 
+    @Operation(
+            summary = "포인트 충전",
+            description = "ID로 포인트를 충전하고 포인트 보유 총량을 반환합니다."
+    )
+    ApiResponse<PointsV1Dto.PointResponse> chargePoint(
+            @Schema(name = "예시 ID", description = "조회할 예시의 ID")
+            @RequestHeader("X-USER-ID") String userId,
+            @Schema(name = "예시 ID", description = "조회할 예시의 ID")
+            PointsV1Dto.PointRequest request
+    );
 
 }
