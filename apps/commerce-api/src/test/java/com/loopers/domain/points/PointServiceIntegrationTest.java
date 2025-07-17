@@ -62,8 +62,7 @@ class PointServiceIntegrationTest {
             pointJpaRepository.save(userPoint);
 
             // act
-            UserModel userInfo = userService.getMyInfo(user.getUserId());
-            PointModel pointInfo = pointService.getPointInfo(userInfo.getUserId());
+            PointModel pointInfo = pointService.getPointInfo(user.getUserId());
 
             // assert
             assertAll(
