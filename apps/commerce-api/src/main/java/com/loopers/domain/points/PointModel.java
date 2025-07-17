@@ -31,6 +31,10 @@ public class PointModel extends BaseEntity {
         this.point = point;
     }
 
+    public static PointModel of(UserModel userModel, Long point) {
+        return new PointModel(userModel, point);
+    }
+
 
 
 
