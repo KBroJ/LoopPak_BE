@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  *   1. 포인트 조회
  *      - [X]  해당 ID 의 회원이 존재할 경우, 보유 포인트가 반환된다.
- *      - [ ]  해당 ID 의 회원이 존재하지 않을 경우, null 이 반환된다.
+ *      - [X]  해당 ID 의 회원이 존재하지 않을 경우, null 이 반환된다.
  *
  *   2. 포인트 충전
  *      - [ ]  존재하지 않는 유저 ID 로 충전을 시도한 경우, 실패한다.
@@ -78,13 +78,13 @@ class PointServiceIntegrationTest {
         void getPointInfo_whenUserNotExists() {
 
             // arrange
-
+            String userId = "noExistUsr";
 
             // act
-
+            PointModel pointInfo = pointService.getPointInfo(userId);
 
             // assert
-
+            assertThat(pointInfo).isNull();
 
         }
 
