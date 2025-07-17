@@ -15,6 +15,9 @@ public class PointService {
     public PointModel getPointInfo(String userId) {
 
         UserModel userInfo = userService.getMyInfo(userId);
+        if (userInfo == null) {
+            return null;
+        }
 
         PointModel pointInfo = pointRepository.findById(userInfo.getId())
                 .orElse(null);
