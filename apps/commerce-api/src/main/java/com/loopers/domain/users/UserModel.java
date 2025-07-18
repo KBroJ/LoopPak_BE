@@ -42,14 +42,14 @@ public class UserModel extends BaseEntity {
 
     public UserModel(String userId, String gender, String birthDateStr, String email) {
 
-        validateUserId(userId);
-        validateGender(gender);
-        validateBirthDate(birthDateStr);
-        validateEmail(email);
+        this.userId = validateUserId(userId);
+        this.gender = validateGender(gender);
+        this.birthDate = validateBirthDate(birthDateStr);
+        this.email = validateEmail(email);
 
     }
 
-    private void validateUserId(String userId) {
+    private String validateUserId(String userId) {
         if (userId == null || userId.isBlank()) {
             throw new CoreException(ErrorType.BAD_REQUEST, "아이디는 비어있을 수 없습니다.");
         }
@@ -57,30 +57,32 @@ public class UserModel extends BaseEntity {
             throw new CoreException(ErrorType.BAD_REQUEST, "ID는 영문 및 숫자로 10자 이내여야 합니다.");
         }
 
-        this.userId = userId;
+        return userId;
     }
 
-    private void validateGender(String gender) {
+    private String validateGender(String gender) {
         if (gender == null || gender.isBlank()) {
             throw new CoreException(ErrorType.BAD_REQUEST, "성별은 비어있을 수 없습니다.");
         }
 
-        this.gender = gender;
+        return gender;
     }
 
-    private void validateBirthDate(String birthDateStr) {
+    private LocalDate validateBirthDate(String birthDateStr) {
         if (birthDateStr == null || birthDateStr.isBlank()) {
             throw new CoreException(ErrorType.BAD_REQUEST, "생년월일은 비어있을 수 없습니다.");
         }
         try {
-            this.birthDate = LocalDate.parse(birthDateStr);
+
+            return LocalDate.parse(birthDateStr);
+
         } catch (DateTimeParseException e) {
             throw new CoreException(ErrorType.BAD_REQUEST, "생년월일 형식이 올바르지 않습니다.(yyy-MM-dd)");
         }
 
     }
 
-    private void validateEmail(String email) {
+    private String validateEmail(String email) {
         if (email == null || email.isBlank()) {
             throw new CoreException(ErrorType.BAD_REQUEST, "이메일은 비어있을 수 없습니다.");
         }
@@ -88,7 +90,7 @@ public class UserModel extends BaseEntity {
             throw new CoreException(ErrorType.BAD_REQUEST, "이메일 형식이 올바르지 않습니다.");
         }
 
-        this.email = email;
+        return email;
     }
 
     public static UserModel of(String userId, String gender, String birthDateStr,String email) {
