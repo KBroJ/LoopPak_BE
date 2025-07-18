@@ -39,23 +39,16 @@ public class PointModel extends BaseEntity {
     }
 
     private void validatePoint(Long point) {
-        if (point == null || point <= 0) {
+        if (point == null || point < 0) {
             throw new CoreException(ErrorType.BAD_REQUEST, "충전 포인트는 0 초과이어야 합니다.");
         }
     }
 
-    /**
-     * 포인트를 충전합니다.
-     * @param amount 충전할 금액 (0보다 커야 함)
-     */
     public void charge(Long amount) {
         if (amount == null || amount <= 0) {
             throw new CoreException(ErrorType.BAD_REQUEST, "충전할 포인트는 0보다 커야 합니다.");
         }
         this.point += amount;
     }
-
-
-
 
 }
