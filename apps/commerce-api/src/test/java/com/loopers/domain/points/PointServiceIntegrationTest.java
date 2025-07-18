@@ -17,17 +17,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- *   통합 테스트
- *
- *   1. 포인트 조회
- *      - [X]  해당 ID 의 회원이 존재할 경우, 보유 포인트가 반환된다.
- *      - [X]  해당 ID 의 회원이 존재하지 않을 경우, null 이 반환된다.
- *
- *   2. 포인트 충전
- *      - [X]  존재하지 않는 유저 ID 로 충전을 시도한 경우, 실패한다.
- *
- */
 @SpringBootTest
 class PointServiceIntegrationTest {
 
@@ -101,8 +90,6 @@ class PointServiceIntegrationTest {
             CoreException exception = assertThrows(CoreException.class, () -> {
                 pointService.chargePoint(userId, 100L);
             });
-
-            System.out.println("예외 메시지: " + exception.getMessage());
 
             // assert
             assertThat(exception.getErrorType()).isEqualTo(ErrorType.NOT_FOUND);

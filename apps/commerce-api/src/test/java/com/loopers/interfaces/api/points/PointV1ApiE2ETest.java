@@ -21,17 +21,6 @@ import org.springframework.http.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- *   E2E 테스트
- *
- *   1. 포인트 조회
- *      - [X]  포인트 조회에 성공할 경우, 보유 포인트를 응답으로 반환한다.
- *      - [X]  `X-USER-ID` 헤더가 없을 경우, `400 Bad Request` 응답을 반환한다.
- *
- *   2. 포인트 충전
- *      - [X]  존재하는 유저가 1000원을 충전할 경우, 충전된 보유 총량을 응답으로 반환한다.
- *      - [X]  존재하지 않는 유저로 요청할 경우, `404 Not Found` 응답을 반환한다.
- */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class PointV1ApiE2ETest {
 
@@ -107,7 +96,6 @@ public class PointV1ApiE2ETest {
 
         }
 
-
     }
 
     @DisplayName("포인트 충전")
@@ -136,8 +124,6 @@ public class PointV1ApiE2ETest {
             ResponseEntity<ApiResponse<PointsV1Dto.PointResponse>> response =
                     testRestTemplate.exchange(requestUrl, HttpMethod.POST, new HttpEntity<>(request, headers), responseType);
 
-            System.out.println("충전 응답 상태 코드: " + response.getStatusCode());
-            System.out.println("충전 응답 본문: " + response.getBody());
 
             // assert
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -162,10 +148,6 @@ public class PointV1ApiE2ETest {
             ParameterizedTypeReference<ApiResponse<PointsV1Dto.PointResponse>> responseType = new ParameterizedTypeReference<>() {};
             ResponseEntity<ApiResponse<PointsV1Dto.PointResponse>> response =
                     testRestTemplate.exchange(requestUrl, HttpMethod.POST, new HttpEntity<>(request, headers), responseType);
-
-            System.out.println("예외처리 응답 상태 코드: " + response.getStatusCode());
-            System.out.println("예외처리 응답 본문: " + response.getBody());
-
 
             // assert
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);

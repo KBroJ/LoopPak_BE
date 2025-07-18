@@ -16,18 +16,6 @@ import static org.mockito.Mockito.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-/**
- *   통합 테스트
- *
- *   1. 회원가입
- *      - [X]  회원 가입시 User 저장이 수행된다. ( spy 검증 )
- *      - [X]  이미 가입된 ID 로 회원가입 시도 시, 실패한다.
- *
- *   2. 내 정보 조회
- *      - [X]  해당 ID 의 회원이 존재할 경우, 회원 정보가 반환된다.
- *      - [X]  해당 ID 의 회원이 존재하지 않을 경우, null 이 반환된다.
- *
- */
 @SpringBootTest
 class UserServiceIntegrationTest {
 
