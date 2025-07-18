@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.mockito.Mockito.*;
@@ -33,7 +34,7 @@ class UserServiceIntegrationTest {
     @Autowired
     private UserService userService;
 
-    @Autowired
+    @MockitoSpyBean
     private UserRepository userRepository;
 
     @Autowired
@@ -59,8 +60,6 @@ class UserServiceIntegrationTest {
         void exeUserSave_whenUserSave() {
 
             // arrange
-            var spyUserRepository = spy(userRepository);
-            UserService userService = new UserService(spyUserRepository);
 
             // act
             userService.saveUser(
@@ -68,7 +67,7 @@ class UserServiceIntegrationTest {
             );
 
             // assert
-            verify(spyUserRepository, times(1)).save(any(UserModel.class));
+            verify(userRepository, times(1)).save(any(UserModel.class));
 
         }
 
