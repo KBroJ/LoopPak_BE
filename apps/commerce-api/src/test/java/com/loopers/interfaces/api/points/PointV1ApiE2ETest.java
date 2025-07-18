@@ -1,7 +1,9 @@
 package com.loopers.interfaces.api.points;
 
 import com.loopers.domain.points.PointModel;
+import com.loopers.domain.points.PointService;
 import com.loopers.domain.users.UserModel;
+import com.loopers.domain.users.UserService;
 import com.loopers.infrastructure.points.PointJpaRepository;
 import com.loopers.infrastructure.users.UserJpaRepository;
 import com.loopers.interfaces.api.ApiResponse;
@@ -35,20 +37,20 @@ public class PointV1ApiE2ETest {
 
     private final TestRestTemplate testRestTemplate;
     private final DatabaseCleanUp databaseCleanUp;
-    private final UserJpaRepository userJpaRepository;
-    private final PointJpaRepository pointJpaRepository;
+    private final UserService userService;
+    private final PointService pointService;
 
     @Autowired
     public PointV1ApiE2ETest(
             TestRestTemplate testRestTemplate,
             DatabaseCleanUp databaseCleanUp,
-            UserJpaRepository userJpaRepository,
-            PointJpaRepository pointJpaRepository
+            UserService userService,
+            PointService pointService
     ) {
         this.testRestTemplate = testRestTemplate;
         this.databaseCleanUp = databaseCleanUp;
-        this.userJpaRepository = userJpaRepository;
-        this.pointJpaRepository = pointJpaRepository;
+        this.userService = userService;
+        this.pointService = pointService;
     }
 
     @AfterEach
@@ -65,15 +67,11 @@ public class PointV1ApiE2ETest {
         void returnPointInfo_whenGetPointInfoByUserId() {
 
             // arrange
-            UserModel userModel = new UserModel(
-                "testUser", "MALE", "2025-07-15", "test@test.com"
+            UserModel user = userService.saveUser(
+                    "testUser", "MALE", "2025-07-15", "test@test.com"
             );
-            UserModel user = userJpaRepository.save(userModel);
 
-            PointModel pointModel = new PointModel(
-                    user, 100L
-            );
-            pointJpaRepository.save(pointModel);
+            pointService.chargePoint(user.getUserId(), 100L);
 
             String requestUrl = "/api/v1/points";
             var headers = new HttpHeaders();
@@ -121,15 +119,9 @@ public class PointV1ApiE2ETest {
         void returnAllChargedPoints_whenChargePoints() {
 
             // arrange
-            UserModel userModel = new UserModel(
+            UserModel user = userService.saveUser(
                     "testUser", "MALE", "2025-07-15", "test@test.com"
             );
-            UserModel user = userJpaRepository.save(userModel);
-
-            PointModel pointModel = new PointModel(
-                    user, 10L
-            );
-            pointJpaRepository.save(pointModel);
 
             String requestUrl = "/api/v1/points/charge";
             var headers = new HttpHeaders();
@@ -149,7 +141,7 @@ public class PointV1ApiE2ETest {
 
             // assert
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody().data().totalPoint()).isEqualTo(1010L);
+            assertThat(response.getBody().data().totalPoint()).isEqualTo(1000L);
 
         }
 
