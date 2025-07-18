@@ -1,5 +1,7 @@
 package com.loopers.domain.users;
 
+import com.loopers.domain.points.PointModel;
+import com.loopers.domain.points.PointRepository;
 import com.loopers.support.error.CoreException;
 import com.loopers.support.error.ErrorType;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 public class UserService {
 
+    private final PointRepository pointRepository;
     private final UserRepository userRepository;
 
     @Transactional
@@ -20,8 +23,12 @@ public class UserService {
         }
 
         UserModel userModel = UserModel.of(userId, gender, birthDate, email);
+        UserModel savedUser = userRepository.save(userModel);
 
-        return userRepository.save(userModel);
+        PointModel pointModel = PointModel.of(savedUser, 0L);
+        pointRepository.save(pointModel);
+
+        return savedUser;
     }
 
     @Transactional(readOnly = true)

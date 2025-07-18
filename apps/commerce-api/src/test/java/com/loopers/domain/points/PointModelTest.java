@@ -3,6 +3,7 @@ package com.loopers.domain.points;
 import com.loopers.domain.users.UserModel;
 import com.loopers.support.error.CoreException;
 import com.loopers.support.error.ErrorType;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -16,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
  *   1. 포인트 충전
  *      - [X]  0 이하의 정수로 포인트를 충전 시 실패한다.
  */
+@Slf4j
 @DisplayName("PointModel|단위 테스트")
 @Nested
 class PointModelTest {
@@ -27,12 +29,16 @@ class PointModelTest {
         // arrange
         UserModel userInfo = UserModel.of(
             "userId", "MALE", "2025-07-14", "test@test.com");
+        PointModel pointModel = PointModel.of(userInfo, 0L);
+
         Long chargePoint = 0L;
 
         // act
         CoreException result = assertThrows(CoreException.class, () -> {
-            PointModel.of(userInfo, chargePoint);
+            pointModel.charge(chargePoint);
         });
+        log.info("result.getErroType = {}", result.getErrorType());
+
 
         // assert
         assertThat(result.getErrorType()).isEqualTo(ErrorType.BAD_REQUEST);

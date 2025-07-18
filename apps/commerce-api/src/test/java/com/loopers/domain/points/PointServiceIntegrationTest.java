@@ -36,10 +36,6 @@ class PointServiceIntegrationTest {
     @Autowired
     private PointService pointService;
     @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private PointJpaRepository pointJpaRepository;
-    @Autowired
     private DatabaseCleanUp databaseCleanUp;
 
     @AfterEach
@@ -59,14 +55,14 @@ class PointServiceIntegrationTest {
             UserModel user = userService.saveUser(
                 "validId", "MALE", "2025-07-14", "test@test.com"
             );
-            PointModel userPoint = PointModel.of(user, 100L);
-            pointJpaRepository.save(userPoint);
+            PointModel userPoint = pointService.getPointInfo(user.getUserId());
 
             // act
             PointModel pointInfo = pointService.getPointInfo(user.getUserId());
 
             // assert
             assertAll(
+                () -> assertThat(user).isNotNull(),
                 () -> assertThat(pointInfo).isNotNull(),
                 () -> assertThat(userPoint.getPoint()).isEqualTo(pointInfo.getPoint())
             );
