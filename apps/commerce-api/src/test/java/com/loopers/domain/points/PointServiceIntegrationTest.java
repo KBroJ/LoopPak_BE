@@ -102,8 +102,6 @@ class PointServiceIntegrationTest {
                 pointService.chargePoint(userId, 100L);
             });
 
-            System.out.println("예외 메시지: " + exception.getMessage());
-
             // assert
             assertThat(exception.getErrorType()).isEqualTo(ErrorType.NOT_FOUND);
 

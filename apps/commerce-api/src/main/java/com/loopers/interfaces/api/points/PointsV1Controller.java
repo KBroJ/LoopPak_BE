@@ -21,13 +21,6 @@ public class PointsV1Controller implements PointsV1ApiSpec{
 
         PointInfo pointInfo = pointFacade.getPointInfo(userId);
 
-        /*
-        return ApiResponse.success(
-                // Mocked response for demonstration
-                new PointsV1Dto.PointResponse(100L)
-        );
-        */
-
         return ApiResponse.success(
                 PointsV1Dto.PointResponse.from(pointInfo)
         );
@@ -42,19 +35,10 @@ public class PointsV1Controller implements PointsV1ApiSpec{
 
         PointInfo totalPoint = pointFacade.chargePoint(userId, request.reqPoint());
 
-
-        // Mocked response for demonstration
-        /*
-        return ApiResponse.success(
-                new PointsV1Dto.PointResponse(1000L)
-        );
-        */
-
         return ApiResponse.success(
                 PointsV1Dto.PointResponse.from(totalPoint)
         );
 
     }
-
 
 }

@@ -37,7 +37,6 @@ class PointModelTest {
         CoreException result = assertThrows(CoreException.class, () -> {
             pointModel.charge(chargePoint);
         });
-        log.info("result.getErroType = {}", result.getErrorType());
 
 
         // assert

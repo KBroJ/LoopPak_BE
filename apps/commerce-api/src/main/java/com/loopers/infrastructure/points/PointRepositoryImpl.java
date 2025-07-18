@@ -16,9 +16,7 @@ public class PointRepositoryImpl implements PointRepository {
 
     @Override
     public Optional<PointModel> findById(Long Id) {
-
         return pointJpaRepository.findById(Id);
-
     }
 
     @Override

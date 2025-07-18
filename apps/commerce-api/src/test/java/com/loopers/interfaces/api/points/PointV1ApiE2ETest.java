@@ -107,7 +107,6 @@ public class PointV1ApiE2ETest {
 
         }
 
-
     }
 
     @DisplayName("포인트 충전")
@@ -136,8 +135,6 @@ public class PointV1ApiE2ETest {
             ResponseEntity<ApiResponse<PointsV1Dto.PointResponse>> response =
                     testRestTemplate.exchange(requestUrl, HttpMethod.POST, new HttpEntity<>(request, headers), responseType);
 
-            System.out.println("충전 응답 상태 코드: " + response.getStatusCode());
-            System.out.println("충전 응답 본문: " + response.getBody());
 
             // assert
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -162,10 +159,6 @@ public class PointV1ApiE2ETest {
             ParameterizedTypeReference<ApiResponse<PointsV1Dto.PointResponse>> responseType = new ParameterizedTypeReference<>() {};
             ResponseEntity<ApiResponse<PointsV1Dto.PointResponse>> response =
                     testRestTemplate.exchange(requestUrl, HttpMethod.POST, new HttpEntity<>(request, headers), responseType);
-
-            System.out.println("예외처리 응답 상태 코드: " + response.getStatusCode());
-            System.out.println("예외처리 응답 본문: " + response.getBody());
-
 
             // assert
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
