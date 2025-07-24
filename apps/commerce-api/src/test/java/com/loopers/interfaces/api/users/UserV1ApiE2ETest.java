@@ -20,19 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- *   E2E 테스트
- *
- *   1. 회원가입
- *      - [X]  회원 가입이 성공할 경우, 생성된 유저 정보를 응답으로 반환한다.
- *      - [X]  회원 가입 시에 성별이 없을 경우, `400 Bad Request` 응답을 반환한다.
- *
- *   2. 내 정보 조회
- *      - [X]  내 정보 조회에 성공할 경우, 해당하는 유저 정보를 응답으로 반환한다.
- *      - [X]  존재하지 않는 ID 로 조회할 경우, `404 Not Found` 응답을 반환한다.
- *
- */
-
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class UserV1ApiE2ETest {
 

@@ -7,9 +7,11 @@ import com.loopers.support.error.ErrorType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
+@Getter
 @Table(name = "points")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PointModel extends BaseEntity {
@@ -20,18 +22,10 @@ public class PointModel extends BaseEntity {
     @NotNull
     private Long point;
 
-    public UserModel getUserModel() {
-        return userModel;
-    }
-
-    public Long getPoint() {
-        return point;
-    }
-
     public PointModel(UserModel userModel, Long point) {
         this.userModel = userModel;
-        this.point = point;
         validatePoint(point);
+        this.point = point;
     }
 
     public static PointModel of(UserModel userModel, Long point) {

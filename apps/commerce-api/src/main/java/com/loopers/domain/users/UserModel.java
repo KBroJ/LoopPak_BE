@@ -7,11 +7,13 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
+import lombok.Getter;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 
 @Entity
+@Getter
 @Table(name = "users")
 public class UserModel extends BaseEntity {
 
@@ -24,19 +26,6 @@ public class UserModel extends BaseEntity {
     private LocalDate birthDate;
     @NotNull
     private String email;
-
-    public String getUserId() {
-        return userId;
-    }
-    public String getGender() {
-        return gender;
-    }
-    public LocalDate getBirthDate() {
-        return birthDate;
-    }
-    public String getEmail() {
-        return email;
-    }
 
     protected UserModel() {}
 
