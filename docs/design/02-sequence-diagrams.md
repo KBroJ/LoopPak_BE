@@ -135,7 +135,6 @@ sequenceDiagram
     participant LF as LikesFacade
     participant PS as ProductService
     participant LS as LikesService
-    participant LR as LikesRepository
     
     U->>+LA: 내가 좋아요 한 상품 목록 조회 요청 (X-USER-ID 헤더)
     LA->>+LF: 내가 좋아요 한 상품 목록 조회 요청 (X-USER-ID 헤더)
@@ -143,12 +142,10 @@ sequenceDiagram
         LF-->>LA: 401 UNAUTHORIZED
     end
     LF->>+LS: 내가 좋아요 한 상품 목록 조회 (userId)
-    LS->>+LR: 내가 좋아요 한 상품 목록 조회 (userId)
     alt 좋아요 목록 없음
-        LR-->>-LA: 404 NOT FOUND + "좋아요 목록이 없습니다."
+        LS-->>-LA: 404 NOT FOUND + "좋아요 목록이 없습니다."
     end
-    LR-->>LS: 좋아요 productId 목록
-    LS-->>-LF: 좋아요 productId 목록
+    LS-->>+LF: 좋아요 productId 목록
     LF->>+PS: 상품 정보 조회 (좋아요 productId 목록)
     PS-->>-LF: 상품 정보 목록
     LF-->>-LA: 200 OK (좋아요 상품 목록 JSON)
@@ -182,21 +179,20 @@ sequenceDiagram
         PRS-->>OA: 400 BAD REQUEST + "최대 개수를 초과했습니다."
     else 상품 판매중이 아님
         PRS-->>OA: 409 CONFLICT + "현재 판매 중이 아닌 상품입니다."
-    else 
-        PRS-->>OF: 상품 재고 차감
-        OF->>+POS: 포인트 차감 요청(유저정보, 주문정보)
-        alt 포인트 부족
-            POS-->>OA: 400 BAD REQUEST + "포인트가 부족합니다."
-        end
-        POS-->>-OF: 포인트 차감 성공
-        OF->>+OS: 주문 생성 (유저정보, 주문 정보)
-        alt 주문 생성 실패
-            OS-->>OA: 500 Internal Server Error + "주문 생성 중 오류가 발생했습니다."
-        end
-        OS-->>-OF: 주문 생성 성공
-        OF-->>-OA: 201 CREATED + "주문이 성공적으로 생성되었습니다."
-        OA-->>-U: 201 CREATED + "주문이 성공적으로 생성되었습니다."
     end
+    PRS-->>OF: 상품 재고 차감
+    OF->>+POS: 포인트 차감 요청(유저정보, 주문정보)
+    alt 포인트 부족
+        POS-->>OA: 400 BAD REQUEST + "포인트가 부족합니다."
+    end
+    POS-->>-OF: 포인트 차감 성공
+    OF->>+OS: 주문 생성 (유저정보, 주문 정보)
+    alt 주문 생성 실패
+        OS-->>OA: 500 Internal Server Error + "주문 생성 중 오류가 발생했습니다."
+    end
+    OS-->>-OF: 주문 생성 성공
+    OF-->>-OA: 201 CREATED + "주문이 성공적으로 생성되었습니다."
+    OA-->>-U: 201 CREATED + "주문이 성공적으로 생성되었습니다."
 ```    
 
 ## 8. 유저의 주문 목록 조회
