@@ -4,6 +4,7 @@ classDiagram
 
     class User {
         - id: Long
+        - userId: String
         - gender: Gender
         - birthDate: String
         - email: String
@@ -29,12 +30,17 @@ classDiagram
     
     class Product {
         - id: Long
+        - Brand brand
         - productId: String
         - name: String
         - description: String
         - price: BigDecimal
+        - stock: Integer
+        - maxOrderCount: Integer
         - status: String
-        - Brand brand
+        - createdAt: LocalDateTime
+        - updatedAt: LocalDateTime
+        - deletedAt: LocalDateTime
     }
     
     class Like {
