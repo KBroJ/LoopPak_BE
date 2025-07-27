@@ -175,8 +175,6 @@ classDiagram
     }
     
     
-    User "1" -- "1" Point : 포인트 소유
-    
     %% 여러 상품(N)은 하나의 브랜드(1)에 소속
     Product "N" --> "1" Brand : 소속
     
