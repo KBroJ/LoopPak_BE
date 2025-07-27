@@ -1,5 +1,6 @@
-# AsIs
+# 종합 클래스 다이어그램
 
+## AsIs
 ```mermaid
 classDiagram
 
@@ -75,8 +76,7 @@ classDiagram
 ```
 
 ---
-# ToBe
-## 종합 클래스 다이어그램
+## ToBe
 ```mermaid
 classDiagram
 
@@ -84,7 +84,10 @@ classDiagram
         - Long id
         - String userId
         - Gender gender
-        - Point point
+        - BigDecimal points
+
+        + addPoints()
+        + deductPoints()
     }
     
     class Gender {
@@ -92,15 +95,6 @@ classDiagram
         MALE
         FEMAILE
         OTHER
-    }
-    
-    class Point {
-        - Long id
-        - User user
-        - BigDecimal amount
-        
-        + addPoints()
-        + deductPoints()
     }
     
     class Product {
@@ -113,8 +107,11 @@ classDiagram
         - ProductStatus status
         - Brand brand
         
-        + updateStock()
-        + changeStatus()
+        + increaseStock(int quantity)
+        + decreaseStock(int quantity)
+        + activate()
+        + inActivate()
+        + outOfStock()
     }
     
     class ProductStatus {
@@ -130,8 +127,9 @@ classDiagram
         - String description
         - String logoUrl
         - Boolean isActive
-        
+
         + activateBrand()
+        + deactivateBrand()
     }
     
     class Like {
@@ -139,11 +137,7 @@ classDiagram
         - User user
         - Long targetId
         - LikeType type
-        
-        + addLike()
-        + removeLike()
     }
-    
     class LikeType {
         <<enumeration>>
         PRODUCT
@@ -158,8 +152,12 @@ classDiagram
         - OrderStatus status
         - LocalDateTime orderDate
         
-        + addOrderItem()
-        + changeStatus()
+        %% 주문을 생성
+        + addOrderItem(Product product, int quantity)
+
+        %% 주문을 확정
+        + confirmOrder(User user, BigDecimal pointsToUse)
+        + cancel()
     }
     
     class OrderItem {
