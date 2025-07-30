@@ -1,6 +1,5 @@
 package com.loopers.domain.product;
 
-import com.loopers.domain.brand.Brand;
 import com.loopers.support.error.CoreException;
 import com.loopers.support.error.ErrorType;
 import org.assertj.core.api.Assertions;
@@ -14,33 +13,28 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @Nested
 class ProductTest {
 
-    String brandName = "Test Brand";
-    String brandDescription = "This is a test brand.";
-    Boolean isActive = true;
-    Brand brand = Brand.of(
-            brandName, brandDescription, isActive
-    );
+    Long BRAND_ID = 1l;
+    String NAME = "Test Product";
+    String DESCRIPTION = "This is a test product.";
+    long PRICE = 19;
+    int STOCK = 100;
+    int MAX_ORDER_QUANTITY = 3;
+    ProductStatus STATUS = ProductStatus.ACTIVE;
 
     @DisplayName("상품 생성")
     @Test
     void productCreat() {
         // Arrange
-        String name = "Test Product";
-        String description = "This is a test product.";
-        long price = 19;
-        int stock = 100;
-        int maxOrderQuantity = 3;
-        ProductStatus status = ProductStatus.ACTIVE;
 
         // Act
         Product product = Product.of(
-                brand, name, description, price, stock, maxOrderQuantity, status
+                BRAND_ID, NAME, DESCRIPTION, PRICE, STOCK, MAX_ORDER_QUANTITY, STATUS
         );
 
         // Assert
         Assertions.assertThat(product).isNotNull();
-        Assertions.assertThat(product.getName()).isEqualTo(name);
-        Assertions.assertThat(product.getPrice()).isEqualTo(price);
+        Assertions.assertThat(product.getName()).isEqualTo(NAME);
+        Assertions.assertThat(product.getPrice()).isEqualTo(PRICE);
 
     }
 
@@ -49,17 +43,11 @@ class ProductTest {
     void throwsBadRequestException_whenBrandIsNull() {
 
         // Arrange
-        String name = "Test Product";
-        String description = "This is a test product.";
-        long price = 19;
-        int stock = 100;
-        int maxOrderQuantity = 3;
-        ProductStatus status = ProductStatus.ACTIVE;
-        Brand brand = null; // 브랜드가 null
+        Long brandId = null;
 
         // Act
         CoreException result = assertThrows(CoreException.class, () -> {
-            Product.of(brand, name, description, price, stock, maxOrderQuantity, status);
+            Product.of(brandId, NAME, DESCRIPTION, PRICE, STOCK, MAX_ORDER_QUANTITY, STATUS);
         });
 
         // Assert
@@ -73,16 +61,12 @@ class ProductTest {
     void throwsBadRequestException_whenNameIsNull() {
 
         // Arrange
+
         String name = "";
-        String description = "This is a test product.";
-        long price = 19;
-        int stock = 100;
-        int maxOrderQuantity = 3;
-        ProductStatus status = ProductStatus.ACTIVE;
 
         // Act
         CoreException result = assertThrows(CoreException.class, () -> {
-            Product.of(brand, name, description, price, stock, maxOrderQuantity, status);
+            Product.of(BRAND_ID, name, DESCRIPTION, PRICE, STOCK, MAX_ORDER_QUANTITY, STATUS);
         });
 
         // Assert
@@ -96,16 +80,11 @@ class ProductTest {
     void throwsBadRequestException_whenPriceIsZeroOrNegative() {
 
         // Arrange
-        String name = "Test Product";
-        String description = "This is a test product.";
         long price = -1; // 0 미만의 가격
-        int stock = 100;
-        int maxOrderQuantity = 3;
-        ProductStatus status = ProductStatus.ACTIVE;
 
         // Act
         CoreException result = assertThrows(CoreException.class, () -> {
-            Product.of(brand, name, description, price, stock, maxOrderQuantity, status);
+            Product.of(BRAND_ID, NAME, DESCRIPTION, price, STOCK, MAX_ORDER_QUANTITY, STATUS);
         });
 
         // Assert
@@ -119,16 +98,11 @@ class ProductTest {
     void throwsBadRequestException_whenStockIsZeroOrNegative() {
 
         // Arrange
-        String name = "Test Product";
-        String description = "This is a test product.";
-        long price = 19;
         int stock = -1; // 0 미만의 재고
-        int maxOrderQuantity = 3;
-        ProductStatus status = ProductStatus.ACTIVE;
 
         // Act
         CoreException result = assertThrows(CoreException.class, () -> {
-            Product.of(brand, name, description, price, stock, maxOrderQuantity, status);
+            Product.of(BRAND_ID, NAME, DESCRIPTION, PRICE, stock, MAX_ORDER_QUANTITY, STATUS);
         });
 
         // Assert
@@ -142,16 +116,11 @@ class ProductTest {
     void throwsBadRequestException_whenMaxOrderQuantityIsZeroOrNegative() {
 
         // Arrange
-        String name = "Test Product";
-        String description = "This is a test product.";
-        long price = 19;
-        int stock = 100;
         int maxOrderQuantity = -1; // 0 이하의 최대 주문 수량
-        ProductStatus status = ProductStatus.ACTIVE;
 
         // Act
         CoreException result = assertThrows(CoreException.class, () -> {
-            Product.of(brand, name, description, price, stock, maxOrderQuantity, status);
+            Product.of(BRAND_ID, NAME, DESCRIPTION, PRICE, STOCK, maxOrderQuantity, STATUS);
         });
 
         // Assert
@@ -165,16 +134,11 @@ class ProductTest {
     void throwsBadRequestException_whenStatusIsNull() {
 
         // Arrange
-        String name = "Test Product";
-        String description = "This is a test product.";
-        long price = 19;
-        int stock = 100;
-        int maxOrderQuantity = 3;
         ProductStatus status = null; // 상태가 null
 
         // Act
         CoreException result = assertThrows(CoreException.class, () -> {
-            Product.of(brand, name, description, price, stock, maxOrderQuantity, status);
+            Product.of(BRAND_ID, NAME, DESCRIPTION, PRICE, STOCK, MAX_ORDER_QUANTITY, status);
         });
 
         // Assert
@@ -187,14 +151,8 @@ class ProductTest {
     @Test
     void increasePrice() {
         // Arrange
-        String name = "Test Product";
-        String description = "This is a test product.";
-        long price = 19;
-        int stock = 100;
-        int maxOrderQuantity = 3;
-        ProductStatus status = ProductStatus.ACTIVE;
         Product product = Product.of(
-                brand, name, description, price, stock, maxOrderQuantity, status
+                BRAND_ID, NAME, DESCRIPTION, PRICE, STOCK, MAX_ORDER_QUANTITY, STATUS
         );
 
         // Act
@@ -208,14 +166,8 @@ class ProductTest {
     @Test
     void decreasePrice() {
         // Arrange
-        String name = "Test Product";
-        String description = "This is a test product.";
-        long price = 19;
-        int stock = 100;
-        int maxOrderQuantity = 3;
-        ProductStatus status = ProductStatus.ACTIVE;
         Product product = Product.of(
-                brand, name, description, price, stock, maxOrderQuantity, status
+                BRAND_ID, NAME, DESCRIPTION, PRICE, STOCK, MAX_ORDER_QUANTITY, STATUS
         );
 
         // Act
@@ -229,14 +181,8 @@ class ProductTest {
     @Test
     void increaseStock() {
         // Arrange
-        String name = "Test Product";
-        String description = "This is a test product.";
-        long price = 19;
-        int stock = 100;
-        int maxOrderQuantity = 3;
-        ProductStatus status = ProductStatus.ACTIVE;
         Product product = Product.of(
-                brand, name, description, price, stock, maxOrderQuantity, status
+                BRAND_ID, NAME, DESCRIPTION, PRICE, STOCK, MAX_ORDER_QUANTITY, STATUS
         );
 
         // Act
@@ -250,14 +196,8 @@ class ProductTest {
     @Test
     void decreaseStock() {
         // Arrange
-        String name = "Test Product";
-        String description = "This is a test product.";
-        long price = 19;
-        int stock = 100;
-        int maxOrderQuantity = 3;
-        ProductStatus status = ProductStatus.ACTIVE;
         Product product = Product.of(
-                brand, name, description, price, stock, maxOrderQuantity, status
+                BRAND_ID, NAME, DESCRIPTION, PRICE, STOCK, MAX_ORDER_QUANTITY, STATUS
         );
 
         // Act
@@ -271,14 +211,8 @@ class ProductTest {
     @Test
     void activateProduct() {
         // Arrange
-        String name = "Test Product";
-        String description = "This is a test product.";
-        long price = 19;
-        int stock = 100;
-        int maxOrderQuantity = 3;
-        ProductStatus status = ProductStatus.INACTIVE; // 비활성 상태
         Product product = Product.of(
-                brand, name, description, price, stock, maxOrderQuantity, status
+                BRAND_ID, NAME, DESCRIPTION, PRICE, STOCK, MAX_ORDER_QUANTITY, ProductStatus.INACTIVE
         );
 
         // Act
@@ -292,14 +226,8 @@ class ProductTest {
     @Test
     void deactivateProduct() {
         // Arrange
-        String name = "Test Product";
-        String description = "This is a test product.";
-        long price = 19;
-        int stock = 100;
-        int maxOrderQuantity = 3;
-        ProductStatus status = ProductStatus.ACTIVE; // 활성 상태
         Product product = Product.of(
-                brand, name, description, price, stock, maxOrderQuantity, status
+                BRAND_ID, NAME, DESCRIPTION, PRICE, STOCK, MAX_ORDER_QUANTITY, STATUS
         );
 
         // Act
@@ -313,14 +241,8 @@ class ProductTest {
     @Test
     void throwsBadRequestException_whenStockIsOut() {
         // Arrange
-        String name = "Test Product";
-        String description = "This is a test product.";
-        long price = 19;
-        int stock = 0; // 재고 없음
-        int maxOrderQuantity = 3;
-        ProductStatus status = ProductStatus.ACTIVE;
         Product product = Product.of(
-                brand, name, description, price, stock, maxOrderQuantity, status
+                BRAND_ID, NAME, DESCRIPTION, PRICE, STOCK, MAX_ORDER_QUANTITY, STATUS
         );
 
         // Act

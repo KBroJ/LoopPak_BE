@@ -16,10 +16,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Product extends BaseEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "brand_id", nullable = false)
+    @Column(name = "brand_id", nullable = false)
     @NotNull
-    private Brand brand;
+    private Long brandId;
 
     @NotNull
     private String name;
@@ -35,11 +34,16 @@ public class Product extends BaseEntity {
     private int maxOrderQuantity;
 
     @NotNull
+    @Enumerated(EnumType.STRING)
     private ProductStatus status;
 
     private Product(
-            Brand brand, String name, String description, long price, int stock, int maxOrderQuantity, ProductStatus status
+            Long brandId, String name, String description, long price, int stock, int maxOrderQuantity, ProductStatus status
     ) {
+
+        if (brandId == null || brandId < 0) {
+            throw new CoreException(ErrorType.BAD_REQUEST, "brandId 는 null이거나, 0 미만일 수 없습니다.");
+        }
         if (name == null || name.isBlank()) {
             throw new CoreException(ErrorType.BAD_REQUEST, "상품 이름은 비어있을 수 없습니다.");
         }
@@ -55,23 +59,23 @@ public class Product extends BaseEntity {
         if (status == null) {
             throw new CoreException(ErrorType.BAD_REQUEST, "상태는 null일 수 없습니다.");
         }
-        if (brand == null) {
+        if (brandId == null) {
             throw new CoreException(ErrorType.BAD_REQUEST, "브랜드는 null일 수 없습니다.");
         }
 
+        this.brandId = brandId;
         this.name = name;
         this.description = description;
         this.price = price;
         this.stock = stock;
         this.maxOrderQuantity = maxOrderQuantity;
         this.status = status;
-        this.brand = brand;
     }
 
     public static Product of(
-            Brand brand, String name, String description, long price, int stock, int maxOrderQuantity, ProductStatus status
+            Long brandId, String name, String description, long price, int stock, int maxOrderQuantity, ProductStatus status
     ) {
-        return new Product(brand, name, description, price, stock, maxOrderQuantity, status);
+        return new Product(brandId, name, description, price, stock, maxOrderQuantity, status);
     }
 
     public void increasePrice(double amount) {
