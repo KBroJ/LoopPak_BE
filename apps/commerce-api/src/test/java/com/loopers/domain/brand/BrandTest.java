@@ -1,6 +1,5 @@
 package com.loopers.domain.brand;
 
-import com.loopers.domain.users.UserModel;
 import com.loopers.support.error.CoreException;
 import com.loopers.support.error.ErrorType;
 import org.junit.jupiter.api.DisplayName;
@@ -16,14 +15,14 @@ class BrandTest {
 
     @DisplayName("Brand 객체 생성")
     @Test
-    void createBrand() {
+    void ofBrand() {
         // Arrange
         String name = "Test Brand";
         String description = "This is a test brand.";
         Boolean isActive = true;
 
         // Act
-        Brand brand = Brand.create(name, description, isActive);
+        Brand brand = Brand.of(name, description, isActive);
 
         // Assert
         assertNotNull(brand);
@@ -42,7 +41,7 @@ class BrandTest {
 
         // Act
         CoreException result = assertThrows(CoreException.class, () -> {
-            Brand brand = Brand.create(name, description, isActive);
+            Brand brand = Brand.of(name, description, isActive);
         });
 
         // Assert
@@ -60,7 +59,7 @@ class BrandTest {
 
         // Act
         CoreException result = assertThrows(CoreException.class, () -> {
-            Brand brand = Brand.create(name, description, isActive);
+            Brand brand = Brand.of(name, description, isActive);
         });
 
         // Assert
@@ -77,7 +76,7 @@ class BrandTest {
 
         // Act
         CoreException result = assertThrows(CoreException.class, () -> {
-            Brand brand = Brand.create(name, description, isActive);
+            Brand brand = Brand.of(name, description, isActive);
         });
 
         // Assert

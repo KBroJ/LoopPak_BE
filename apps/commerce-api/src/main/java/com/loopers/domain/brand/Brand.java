@@ -15,17 +15,14 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
 public class Brand extends BaseEntity {
 
-
     private String name;
     private String description;
     private Boolean isActive;
 
     private Brand(String name, String dscription, Boolean isActive) {
+
         if (name == null || name.isBlank()) {
             throw new CoreException(ErrorType.BAD_REQUEST, "브랜드 이름은 비어있을 수 없습니다.");
-        }
-        if (dscription == null || dscription.isBlank()) {
-            throw new CoreException(ErrorType.BAD_REQUEST, "브랜드 설명은 비어있을 수 없습니다.");
         }
         if (isActive == null) {
             throw new CoreException(ErrorType.BAD_REQUEST, "브랜드 활성화 상태는 null일 수 없습니다.");
@@ -36,10 +33,10 @@ public class Brand extends BaseEntity {
         this.isActive = isActive;
     }
 
-    public static Brand create(
-            String brandName, String brandDescription, Boolean isActive
+    public static Brand of(
+            String name, String description, Boolean isActive
     ) {
-        return new Brand(brandName, brandDescription, isActive);
+        return new Brand(name, description, isActive);
     }
 
     public void activeBrand() {
