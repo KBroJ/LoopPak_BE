@@ -4,8 +4,8 @@ import com.loopers.domain.BaseEntity;
 import com.loopers.domain.brand.Brand;
 import com.loopers.support.error.CoreException;
 import com.loopers.support.error.ErrorType;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,12 +16,25 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Product extends BaseEntity {
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "brand_id", nullable = false)
+    @NotNull
     private Brand brand;
+
+    @NotNull
     private String name;
+
     private String description;
+
+    @NotNull
     private long price;
+
+    @NotNull
     private int stock;
+
     private int maxOrderQuantity;
+
+    @NotNull
     private ProductStatus status;
 
     private Product(
@@ -36,8 +49,8 @@ public class Product extends BaseEntity {
         if (stock < 0) {
             throw new CoreException(ErrorType.BAD_REQUEST, "재고는 0 이상이어야 합니다.");
         }
-        if (maxOrderQuantity <= 0) {
-            throw new CoreException(ErrorType.BAD_REQUEST, "최대 주문 수량은 1 이상이어야 합니다.");
+        if (maxOrderQuantity < 0) {
+            throw new CoreException(ErrorType.BAD_REQUEST, "최대 주문 수량은 0 이상이어야 합니다.");
         }
         if (status == null) {
             throw new CoreException(ErrorType.BAD_REQUEST, "상태는 null일 수 없습니다.");
@@ -55,7 +68,7 @@ public class Product extends BaseEntity {
         this.brand = brand;
     }
 
-    public static Product create(
+    public static Product of(
             Brand brand, String name, String description, long price, int stock, int maxOrderQuantity, ProductStatus status
     ) {
         return new Product(brand, name, description, price, stock, maxOrderQuantity, status);

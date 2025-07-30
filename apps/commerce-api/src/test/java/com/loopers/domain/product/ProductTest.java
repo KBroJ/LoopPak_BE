@@ -17,7 +17,7 @@ class ProductTest {
     String brandName = "Test Brand";
     String brandDescription = "This is a test brand.";
     Boolean isActive = true;
-    Brand brand = Brand.create(
+    Brand brand = Brand.of(
             brandName, brandDescription, isActive
     );
 
@@ -33,7 +33,7 @@ class ProductTest {
         ProductStatus status = ProductStatus.ACTIVE;
 
         // Act
-        Product product = Product.create(
+        Product product = Product.of(
                 brand, name, description, price, stock, maxOrderQuantity, status
         );
 
@@ -59,7 +59,7 @@ class ProductTest {
 
         // Act
         CoreException result = assertThrows(CoreException.class, () -> {
-            Product.create(brand, name, description, price, stock, maxOrderQuantity, status);
+            Product.of(brand, name, description, price, stock, maxOrderQuantity, status);
         });
 
         // Assert
@@ -82,7 +82,7 @@ class ProductTest {
 
         // Act
         CoreException result = assertThrows(CoreException.class, () -> {
-            Product.create(brand, name, description, price, stock, maxOrderQuantity, status);
+            Product.of(brand, name, description, price, stock, maxOrderQuantity, status);
         });
 
         // Assert
@@ -105,7 +105,7 @@ class ProductTest {
 
         // Act
         CoreException result = assertThrows(CoreException.class, () -> {
-            Product.create(brand, name, description, price, stock, maxOrderQuantity, status);
+            Product.of(brand, name, description, price, stock, maxOrderQuantity, status);
         });
 
         // Assert
@@ -128,7 +128,7 @@ class ProductTest {
 
         // Act
         CoreException result = assertThrows(CoreException.class, () -> {
-            Product.create(brand, name, description, price, stock, maxOrderQuantity, status);
+            Product.of(brand, name, description, price, stock, maxOrderQuantity, status);
         });
 
         // Assert
@@ -146,12 +146,12 @@ class ProductTest {
         String description = "This is a test product.";
         long price = 19;
         int stock = 100;
-        int maxOrderQuantity = 0; // 0 이하의 최대 주문 수량
+        int maxOrderQuantity = -1; // 0 이하의 최대 주문 수량
         ProductStatus status = ProductStatus.ACTIVE;
 
         // Act
         CoreException result = assertThrows(CoreException.class, () -> {
-            Product.create(brand, name, description, price, stock, maxOrderQuantity, status);
+            Product.of(brand, name, description, price, stock, maxOrderQuantity, status);
         });
 
         // Assert
@@ -174,7 +174,7 @@ class ProductTest {
 
         // Act
         CoreException result = assertThrows(CoreException.class, () -> {
-            Product.create(brand, name, description, price, stock, maxOrderQuantity, status);
+            Product.of(brand, name, description, price, stock, maxOrderQuantity, status);
         });
 
         // Assert
@@ -193,7 +193,7 @@ class ProductTest {
         int stock = 100;
         int maxOrderQuantity = 3;
         ProductStatus status = ProductStatus.ACTIVE;
-        Product product = Product.create(
+        Product product = Product.of(
                 brand, name, description, price, stock, maxOrderQuantity, status
         );
 
@@ -214,7 +214,7 @@ class ProductTest {
         int stock = 100;
         int maxOrderQuantity = 3;
         ProductStatus status = ProductStatus.ACTIVE;
-        Product product = Product.create(
+        Product product = Product.of(
                 brand, name, description, price, stock, maxOrderQuantity, status
         );
 
@@ -235,7 +235,7 @@ class ProductTest {
         int stock = 100;
         int maxOrderQuantity = 3;
         ProductStatus status = ProductStatus.ACTIVE;
-        Product product = Product.create(
+        Product product = Product.of(
                 brand, name, description, price, stock, maxOrderQuantity, status
         );
 
@@ -256,7 +256,7 @@ class ProductTest {
         int stock = 100;
         int maxOrderQuantity = 3;
         ProductStatus status = ProductStatus.ACTIVE;
-        Product product = Product.create(
+        Product product = Product.of(
                 brand, name, description, price, stock, maxOrderQuantity, status
         );
 
@@ -277,7 +277,7 @@ class ProductTest {
         int stock = 100;
         int maxOrderQuantity = 3;
         ProductStatus status = ProductStatus.INACTIVE; // 비활성 상태
-        Product product = Product.create(
+        Product product = Product.of(
                 brand, name, description, price, stock, maxOrderQuantity, status
         );
 
@@ -298,7 +298,7 @@ class ProductTest {
         int stock = 100;
         int maxOrderQuantity = 3;
         ProductStatus status = ProductStatus.ACTIVE; // 활성 상태
-        Product product = Product.create(
+        Product product = Product.of(
                 brand, name, description, price, stock, maxOrderQuantity, status
         );
 
@@ -319,7 +319,7 @@ class ProductTest {
         int stock = 0; // 재고 없음
         int maxOrderQuantity = 3;
         ProductStatus status = ProductStatus.ACTIVE;
-        Product product = Product.create(
+        Product product = Product.of(
                 brand, name, description, price, stock, maxOrderQuantity, status
         );
 
