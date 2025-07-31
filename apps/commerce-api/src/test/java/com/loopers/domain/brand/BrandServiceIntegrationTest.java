@@ -3,6 +3,7 @@ package com.loopers.domain.brand;
 import com.loopers.utils.DatabaseCleanUp;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -32,62 +33,71 @@ class BrandServiceIntegrationTest {
     private static final String DESCRIPTION = "백엔드 실력 성장 이직하고 싶다";
     private static final Boolean IS_ACTICE = true;
 
-    @DisplayName("브랜드 생성 시 브랜드 정보가 반환된다.")
-    @Test
-    void returnBrand_whenCreateBrand() {
+    @DisplayName("브랜드 생성")
+    @Nested
+    class create {
+        @DisplayName("브랜드 생성 시 브랜드 정보가 반환된다.")
+        @Test
+        void returnBrand_whenCreateBrand() {
 
-        // arrange
-        Brand brand = Brand.of(NAME, DESCRIPTION, IS_ACTICE);
+            // arrange
+            Brand brand = Brand.of(NAME, DESCRIPTION, IS_ACTICE);
 
-        // act
-        Brand result = brandService.create(brand);
+            // act
+            Brand result = brandService.create(brand);
 
-        // assert
-        assertAll(
-            () -> assertThat(result).isNotNull(),
-            () -> assertThat(result.getId()).isNotNull(),
-            () -> assertThat(result.getName()).isEqualTo(NAME),
-            () -> assertThat(result.getDescription()).isEqualTo(DESCRIPTION),
-            () -> assertThat(result.getIsActive()).isEqualTo(IS_ACTICE)
-        );
+            // assert
+            assertAll(
+                () -> assertThat(result).isNotNull(),
+                () -> assertThat(result.getId()).isNotNull(),
+                () -> assertThat(result.getName()).isEqualTo(NAME),
+                () -> assertThat(result.getDescription()).isEqualTo(DESCRIPTION),
+                () -> assertThat(result.getIsActive()).isEqualTo(IS_ACTICE)
+            );
 
+        }
     }
 
-    @DisplayName("존재하지 않는 브랜드 id값으로 정보 조회 시, Optional.empty 가 반환된다.")
-    @Test
-    void returnOptionalEmpty_whenBrandIdNotExists() {
+    @DisplayName("브랜드 정보 조회")
+    @Nested
+    class brandInfo {
 
-        // arrange
-        Long brandId = 2l;
+        @DisplayName("존재하지 않는 브랜드 id값으로 정보 조회 시, Optional.empty 가 반환된다.")
+        @Test
+        void returnOptionalEmpty_whenBrandIdNotExists() {
 
-        // act
-        Optional<Brand> result = brandService.brandInfo(brandId);
+            // arrange
+            Long brandId = 2l;
 
-        // assert
-        assertThat(result).isEmpty();
+            // act
+            Optional<Brand> result = brandService.brandInfo(brandId);
+
+            // assert
+            assertThat(result).isEmpty();
+
+        }
+
+        @DisplayName("존재하는 브랜드 정보를 id값으로 조회 시, 브랜드 정보가 반환된다.")
+        @Test
+        void returnBrandInfo_whenFindBrandInfo() {
+
+            // arrange
+            Brand brand = Brand.of(NAME, DESCRIPTION, IS_ACTICE);
+            Brand brandInfo = brandService.create(brand);
+
+            // act
+            Optional<Brand> result = brandService.brandInfo(brandInfo.getId());
+
+            // assert
+            assertAll(
+                    () -> assertThat(result).isNotEmpty(),
+                    () -> assertThat(result.get().getId()).isEqualTo(brandInfo.getId()),
+                    () -> assertThat(result.get().getName()).isEqualTo(NAME),
+                    () -> assertThat(result.get().getDescription()).isEqualTo(DESCRIPTION),
+                    () -> assertThat(result.get().getIsActive()).isEqualTo(IS_ACTICE)
+            );
+
+        }
 
     }
-
-    @DisplayName("존재하는 브랜드 정보를 id값으로 조회 시, 브랜드 정보가 반환된다.")
-    @Test
-    void returnBrandInfo_whenFindBrandInfo() {
-
-        // arrange
-        Brand brand = Brand.of(NAME, DESCRIPTION, IS_ACTICE);
-        Brand brandInfo = brandService.create(brand);
-
-        // act
-        Optional<Brand> result = brandService.brandInfo(brandInfo.getId());
-
-        // assert
-        assertAll(
-                () -> assertThat(result).isNotEmpty(),
-                () -> assertThat(result.get().getId()).isEqualTo(brandInfo.getId()),
-                () -> assertThat(result.get().getName()).isEqualTo(NAME),
-                () -> assertThat(result.get().getDescription()).isEqualTo(DESCRIPTION),
-                () -> assertThat(result.get().getIsActive()).isEqualTo(IS_ACTICE)
-        );
-
-    }
-
 }
