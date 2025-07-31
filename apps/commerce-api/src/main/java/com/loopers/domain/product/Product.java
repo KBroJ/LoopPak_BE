@@ -58,9 +58,6 @@ public class Product extends BaseEntity {
         if (status == null) {
             throw new CoreException(ErrorType.BAD_REQUEST, "상태는 null일 수 없습니다.");
         }
-        if (brandId == null) {
-            throw new CoreException(ErrorType.BAD_REQUEST, "브랜드는 null일 수 없습니다.");
-        }
 
         this.brandId = brandId;
         this.name = name;

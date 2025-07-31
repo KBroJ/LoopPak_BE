@@ -38,9 +38,9 @@ class ProductTest {
 
     }
 
-    @DisplayName("브랜드가 null일 때 예외 발생")
+    @DisplayName("brandId가 null일 때 예외 발생")
     @Test
-    void throwsBadRequestException_whenBrandIsNull() {
+    void throwsBadRequestException_whenBrandIdIsNull() {
 
         // Arrange
         Long brandId = null;
