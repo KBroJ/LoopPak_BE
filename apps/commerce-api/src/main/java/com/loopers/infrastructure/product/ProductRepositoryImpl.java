@@ -8,6 +8,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
+
 @Component
 @RequiredArgsConstructor
 public class ProductRepositoryImpl implements ProductRepository {
@@ -21,9 +23,14 @@ public class ProductRepositoryImpl implements ProductRepository {
 
     // ProductRepository의 새로운 search 메서드를 구현합니다.
     @Override
-    public Page<Product> search(Specification<Product> spec, Pageable pageable) {
+    public Page<Product> productList(Specification<Product> spec, Pageable pageable) {
         // 실제 쿼리 실행은 JpaSpecificationExecutor가 제공하는 findAll 메서드에 위임합니다.
         return productJpaRepository.findAll(spec, pageable);
+    }
+
+    @Override
+    public Optional<Product> productInfo(Long productId) {
+        return productJpaRepository.findById(productId);
     }
 
 

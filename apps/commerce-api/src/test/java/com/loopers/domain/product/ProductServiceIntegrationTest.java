@@ -9,6 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 
 import java.util.Comparator;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
@@ -38,31 +39,35 @@ class ProductServiceIntegrationTest {
     @AfterEach
     void tearDown() { databaseCleanUp.truncateAllTables(); }
 
-    @DisplayName("상품 생성 시 상품 정보가 반환된다.")
-    @Test
-    void returnProductInfo_whenCreateProduct() {
+    @DisplayName("상품 생성")
+    @Nested
+    class create {
+        @DisplayName("상품 생성 시 상품 정보가 반환된다.")
+        @Test
+        void returnProductInfo_whenCreateProduct() {
 
-        // arrange
-        Product product = Product.of(
-                brandAId, "상품명", "설명", 100, 10, 10, ProductStatus.ACTIVE
-        );
+            // arrange
+            Product product = Product.of(
+                    brandAId, "상품명", "설명", 100, 10, 10, ProductStatus.ACTIVE
+            );
 
-        // act
-        Product result = productService.create(product);
+            // act
+            Product result = productService.create(product);
 
-        // assert
-        assertAll(
-            () -> assertThat(result).isNotNull(),
-            () -> assertThat(result.getBrandId()).isEqualTo(brandAId),
-            () -> assertThat(result.getId()).isNotNull(),
-            () -> assertThat(result.getName()).isEqualTo("상품명"),
-            () -> assertThat(result.getDescription()).isEqualTo("설명"),
-            () -> assertThat(result.getPrice()).isEqualTo(100),
-            () -> assertThat(result.getStock()).isEqualTo(10),
-            () -> assertThat(result.getMaxOrderQuantity()).isEqualTo(10),
-            () -> assertThat(result.getStatus()).isEqualTo(ProductStatus.ACTIVE)
-        );
+            // assert
+            assertAll(
+                () -> assertThat(result).isNotNull(),
+                () -> assertThat(result.getBrandId()).isEqualTo(brandAId),
+                () -> assertThat(result.getId()).isNotNull(),
+                () -> assertThat(result.getName()).isEqualTo("상품명"),
+                () -> assertThat(result.getDescription()).isEqualTo("설명"),
+                () -> assertThat(result.getPrice()).isEqualTo(100),
+                () -> assertThat(result.getStock()).isEqualTo(10),
+                () -> assertThat(result.getMaxOrderQuantity()).isEqualTo(10),
+                () -> assertThat(result.getStatus()).isEqualTo(ProductStatus.ACTIVE)
+            );
 
+        }
     }
 
     @DisplayName("상품 목록 조회")
@@ -136,7 +141,9 @@ class ProductServiceIntegrationTest {
         void returnPagedProducts_whenSearchWithPaging() {
             // arrange: 총 5개의 활성화 상품 생성
             for (int i = 1; i <= 5; i++) {
-                productService.create(Product.of(brandAId, "상품" + i, "설명", 100, 10, 10, ProductStatus.ACTIVE));
+                productService.create(
+                        Product.of(brandAId, "상품" + i, "설명", 100, 10, 10, ProductStatus.ACTIVE)
+                );
             }
 
             // act: 2번째 페이지(page=1), 사이즈 2개 요청
@@ -147,6 +154,37 @@ class ProductServiceIntegrationTest {
             assertThat(result.getTotalPages()).isEqualTo(3);    // 총 페이지 수 (5개 / 2 = 2.5 -> 3)
             assertThat(result.getNumber()).isEqualTo(1);        // 현재 페이지 번호 (0부터 시작)
             assertThat(result.getContent()).hasSize(2);         // 현재 페이지의 상품 수
+        }
+
+    }
+
+    @DisplayName("상품 정보 조회")
+    @Nested
+    class productInfo {
+
+        @DisplayName("productId 파라미터로 특정 상품 조회 시 해당 상품 정보가 반환된다.")
+        @Test
+        void returnProductInfo_whenFindByProductId() {
+            // arrange
+            Product product = productService.create(
+                    Product.of(brandAId, "중간가격상품", "설명", 200, 10, 10, ProductStatus.ACTIVE)
+            );
+
+            // act
+            Optional<Product> result = productService.productInfo(product.getId());
+
+            // assert
+            assertAll(
+                () -> assertThat(result.get()).isNotNull(),
+                () -> assertThat(result.get().getId()).isEqualTo(product.getId()),
+                () -> assertThat(result.get().getName()).isEqualTo(product.getName()),
+                () -> assertThat(result.get().getDescription()).isEqualTo(product.getDescription()),
+                () -> assertThat(result.get().getPrice()).isEqualTo(product.getPrice()),
+                () -> assertThat(result.get().getStock()).isEqualTo(product.getStock()),
+                () -> assertThat(result.get().getMaxOrderQuantity()).isEqualTo(product.getMaxOrderQuantity()),
+                () -> assertThat(result.get().getStatus()).isEqualTo(product.getStatus())
+            );
+
         }
 
     }

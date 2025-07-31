@@ -9,6 +9,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @RequiredArgsConstructor
 @Component
 public class ProductService {
@@ -48,7 +50,11 @@ public class ProductService {
         }
 
         // 4. Repository 호출
-        return productRepository.search(spec, pageable);
+        return productRepository.productList(spec, pageable);
+    }
+
+    public Optional<Product> productInfo(Long productId) {
+        return productRepository.productInfo(productId);
     }
 
 }
