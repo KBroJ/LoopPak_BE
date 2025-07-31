@@ -2,11 +2,9 @@ package com.loopers.infrastructure.product;
 
 
 import com.loopers.domain.product.Product;
-import com.loopers.domain.product.ProductStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-import java.util.List;
 
-public interface ProductJpaRepository extends JpaRepository<Product, Long> {
-    List<Product> findByStatus(ProductStatus status);
+public interface ProductJpaRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
 }

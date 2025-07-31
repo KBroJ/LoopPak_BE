@@ -1,11 +1,14 @@
 package com.loopers.domain.product;
 
+import com.loopers.domain.brand.Brand;
+import com.loopers.domain.brand.BrandService;
 import com.loopers.utils.DatabaseCleanUp;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Page;
 
-import java.util.List;
+import java.util.Comparator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
@@ -14,21 +17,26 @@ import static org.junit.jupiter.api.Assertions.*;
 class ProductServiceIntegrationTest {
 
     @Autowired
+    private BrandService brandService;
+    @Autowired
     private ProductService productService;
 
     @Autowired
     private DatabaseCleanUp databaseCleanUp;
 
+    private Long brandAId;
+    private Long brandBId;
+    @BeforeEach
+    void setUp() {
+        // 각 테스트 전에 독립적인 브랜드 데이터를 생성합니다.
+        Brand brandA = brandService.create(Brand.of("브랜드A", "설명", true));
+        Brand brandB = brandService.create(Brand.of("브랜드B", "설명", true));
+        brandAId = brandA.getId();
+        brandBId = brandB.getId();
+    }
+
     @AfterEach
     void tearDown() { databaseCleanUp.truncateAllTables(); }
-
-    private static final Long BRAND_ID = 1l;
-    private static final String NAME = "상품명";
-    private static final String DESCRIPTION = "상품설명";
-    private static final long PRICE = 100;
-    private static final int STOCK = 10;
-    private static final int MAX_ORDER_QUANTITIY = 10;
-    private static final ProductStatus STATUS = ProductStatus.ACTIVE;
 
     @DisplayName("상품 생성 시 상품 정보가 반환된다.")
     @Test
@@ -36,7 +44,7 @@ class ProductServiceIntegrationTest {
 
         // arrange
         Product product = Product.of(
-            BRAND_ID, NAME, DESCRIPTION, PRICE, STOCK, MAX_ORDER_QUANTITIY, STATUS
+                brandAId, "상품명", "설명", 100, 10, 10, ProductStatus.ACTIVE
         );
 
         // act
@@ -45,47 +53,100 @@ class ProductServiceIntegrationTest {
         // assert
         assertAll(
             () -> assertThat(result).isNotNull(),
-            () -> assertThat(result.getBrandId()).isEqualTo(BRAND_ID),
+            () -> assertThat(result.getBrandId()).isEqualTo(brandAId),
             () -> assertThat(result.getId()).isNotNull(),
-            () -> assertThat(result.getName()).isEqualTo(NAME),
-            () -> assertThat(result.getDescription()).isEqualTo(DESCRIPTION),
-            () -> assertThat(result.getPrice()).isEqualTo(PRICE),
-            () -> assertThat(result.getStock()).isEqualTo(STOCK),
-            () -> assertThat(result.getMaxOrderQuantity()).isEqualTo(MAX_ORDER_QUANTITIY),
-            () -> assertThat(result.getStatus()).isEqualTo(STATUS)
+            () -> assertThat(result.getName()).isEqualTo("상품명"),
+            () -> assertThat(result.getDescription()).isEqualTo("설명"),
+            () -> assertThat(result.getPrice()).isEqualTo(100),
+            () -> assertThat(result.getStock()).isEqualTo(10),
+            () -> assertThat(result.getMaxOrderQuantity()).isEqualTo(10),
+            () -> assertThat(result.getStatus()).isEqualTo(ProductStatus.ACTIVE)
         );
-
 
     }
 
-    @DisplayName("정보 조회")
+    @DisplayName("상품 목록 조회")
     @Nested
-    class findInfo {
+    class productList {
 
-        @DisplayName("상품 목록 조회 시 STATUS가 ACTIVE 상태인 상품 목록 리스트가 반환된다.")
+        @DisplayName("기본 조건(brandId 없음, 최신순)으로 조회 시 활성화된 모든 상품이 최신순으로 반환된다.")
         @Test
-        void returnProductList_whenGetProductList() {
+        void returnAllActiveProducts_whenSearchWithDefaultConditions() throws InterruptedException {
 
             // arrange
-            Product activeProduct1 = Product.of(BRAND_ID, "활성상품1", "설명", 100, 10, 10, ProductStatus.ACTIVE);
-            Product activeProduct2 = Product.of(BRAND_ID, "활성상품2", "설명", 200, 10, 10, ProductStatus.ACTIVE);
-            Product inactiveProduct = Product.of(BRAND_ID, "비활성상품", "설명", 300, 10, 10, ProductStatus.INACTIVE);
-            Product outOfStockProduct = Product.of(BRAND_ID, "품절상품", "설명", 400, 0, 10, ProductStatus.OUT_OF_STOCK);
+            Product activeProduct1 = Product.of(brandAId, "활성상품1", "설명", 100, 10, 10, ProductStatus.ACTIVE);
+            Product activeProduct2 = Product.of(brandBId, "활성상품2", "설명", 200, 10, 10, ProductStatus.ACTIVE);
+            Product inactiveProduct = Product.of(brandAId, "비활성상품", "설명", 300, 10, 10, ProductStatus.INACTIVE);
+            Product outOfStockProduct = Product.of(brandBId, "품절상품", "설명", 400, 0, 10, ProductStatus.OUT_OF_STOCK);
             productService.create(activeProduct1);
-            productService.create(activeProduct2);
+            Thread.sleep(10);
+            Product latestActiveProduct = productService.create(activeProduct2);
             productService.create(inactiveProduct);
             productService.create(outOfStockProduct);
 
             // act
-            List<Product> result = productService.productList();
+//            List<Product> result = productService.productList();
+            Page<Product> result = productService.productList(null, "latest", 0, 20);
 
             // assert
-            assertThat(result).hasSize(2) // ACTIVE 상태인 상품은 2개여야 함
-                    .extracting("name") // 상품 이름만 추출해서
-                    .containsExactlyInAnyOrder("활성상품1", "활성상품2"); // 이름이 맞는지 순서 상관없이 확인
+            assertThat(result.getTotalElements()).isEqualTo(2); // 활성화된 상품 총 2개
+            assertThat(result.getContent()).hasSize(2);
+            assertThat(result.getContent().get(0).getName()).isEqualTo(latestActiveProduct.getName()); // 첫번째 상품이 가장 최신 상품인지 확인
 
             // 모든 상품의 상태가 ACTIVE인지 추가로 확인
             result.forEach(product -> assertThat(product.getStatus()).isEqualTo(ProductStatus.ACTIVE));
+        }
+
+        @DisplayName("brandId로 필터링 시 해당 브랜드의 활성화된 상품만 반환된다.")
+        @Test
+        void returnFilteredProducts_whenSearchWithBrandId() {
+            // arrange
+            productService.create(Product.of(brandAId, "A브랜드상품1", "설명", 100, 10, 10, ProductStatus.ACTIVE));
+            productService.create(Product.of(brandAId, "A브랜드상품2-비활성", "설명", 150, 10, 10, ProductStatus.INACTIVE));
+            productService.create(Product.of(brandBId, "B브랜드상품1", "설명", 200, 10, 10, ProductStatus.ACTIVE));
+
+            // act: brandId=brandAId, sort="latest", page=0, size=10
+            Page<Product> result = productService.productList(brandAId, "latest", 0, 10);
+
+            // assert
+            assertThat(result.getTotalElements()).isEqualTo(1); // A브랜드의 활성화 상품은 1개
+            assertThat(result.getContent()).hasSize(1);
+            assertThat(result.getContent().get(0).getName()).isEqualTo("A브랜드상품1");
+        }
+
+        @DisplayName("가격 오름차순으로 정렬 시 상품이 가격순으로 반환된다.")
+        @Test
+        void returnSortedProducts_whenSearchWithPriceAsc() {
+            // arrange
+            productService.create(Product.of(brandAId, "중간가격상품", "설명", 200, 10, 10, ProductStatus.ACTIVE));
+            productService.create(Product.of(brandAId, "최고가상품", "설명", 300, 10, 10, ProductStatus.ACTIVE));
+            productService.create(Product.of(brandAId, "최저가상품", "설명", 100, 10, 10, ProductStatus.ACTIVE));
+
+            // act: brandId=null, sort="price_asc", page=0, size=10
+            Page<Product> result = productService.productList(null, "price_asc", 0, 10);
+
+            // assert
+            assertThat(result.getContent()).hasSize(3);
+            // 가격 오름차순으로 정렬되었는지 확인
+            assertThat(result.getContent()).isSortedAccordingTo(Comparator.comparing(Product::getPrice));
+        }
+
+        @DisplayName("페이징 처리 시 요청한 페이지와 사이즈에 맞는 결과가 반환된다.")
+        @Test
+        void returnPagedProducts_whenSearchWithPaging() {
+            // arrange: 총 5개의 활성화 상품 생성
+            for (int i = 1; i <= 5; i++) {
+                productService.create(Product.of(brandAId, "상품" + i, "설명", 100, 10, 10, ProductStatus.ACTIVE));
+            }
+
+            // act: 2번째 페이지(page=1), 사이즈 2개 요청
+            Page<Product> result = productService.productList(null, "latest", 1, 2);
+
+            // assert
+            assertThat(result.getTotalElements()).isEqualTo(5); // 총 상품 수
+            assertThat(result.getTotalPages()).isEqualTo(3);    // 총 페이지 수 (5개 / 2 = 2.5 -> 3)
+            assertThat(result.getNumber()).isEqualTo(1);        // 현재 페이지 번호 (0부터 시작)
+            assertThat(result.getContent()).hasSize(2);         // 현재 페이지의 상품 수
         }
 
     }

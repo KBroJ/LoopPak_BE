@@ -1,14 +1,14 @@
 package com.loopers.domain.product;
 
-import org.springframework.stereotype.Component;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
-import java.util.List;
-import java.util.Optional;
 
 public interface ProductRepository {
 
     Product save(Product product);
 
-    List<Product> findByStatus(ProductStatus status);
+    Page<Product> search(Specification<Product> spec, Pageable pageable);
 
 }
