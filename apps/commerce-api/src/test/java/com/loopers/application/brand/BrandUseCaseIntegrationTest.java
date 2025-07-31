@@ -1,5 +1,8 @@
-package com.loopers.domain.brand;
+package com.loopers.application.brand;
 
+import com.loopers.domain.brand.Brand;
+import com.loopers.domain.brand.BrandRepository;
+import com.loopers.domain.brand.BrandService;
 import com.loopers.utils.DatabaseCleanUp;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -15,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 
 
 @SpringBootTest
-class BrandServiceIntegrationTest {
+class BrandUseCaseIntegrationTest {
 
     @Autowired
     private BrandService brandService;

@@ -4,6 +4,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
+import java.util.List;
 import java.util.Optional;
 
 
@@ -14,4 +15,6 @@ public interface ProductRepository {
     Page<Product> productList(Specification<Product> spec, Pageable pageable);
 
     Optional<Product> productInfo(Long productId);
+
+    Page<Product> findByIdIn(List<Long> productIds, Pageable pageable);
 }

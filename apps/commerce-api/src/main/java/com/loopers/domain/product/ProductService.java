@@ -9,6 +9,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 @RequiredArgsConstructor
@@ -55,6 +56,21 @@ public class ProductService {
 
     public Optional<Product> productInfo(Long productId) {
         return productRepository.productInfo(productId);
+    }
+
+    /**
+     * 좋아요 한 상품 ID 목록으로 상품 정보를 페이징하여 조회합니다.
+     * @param productIds 상품 ID 리스트
+     * @param pageable 페이징 및 정렬 정보
+     * @return 페이징 처리된 상품 목록
+     */
+    @Transactional(readOnly = true)
+    public Page<Product> findProductsByIds(List<Long> productIds, Pageable pageable) {
+        // ID 목록이 비어있으면 굳이 DB를 조회할 필요 없이 빈 페이지를 반환합니다.
+        if (productIds == null || productIds.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        return productRepository.findByIdIn(productIds, pageable);
     }
 
 }

@@ -1,7 +1,12 @@
-package com.loopers.domain.product;
+package com.loopers.application.product;
 
 import com.loopers.domain.brand.Brand;
 import com.loopers.domain.brand.BrandService;
+import com.loopers.domain.like.LikeService;
+import com.loopers.domain.like.LikeType;
+import com.loopers.domain.product.Product;
+import com.loopers.domain.product.ProductService;
+import com.loopers.domain.product.ProductStatus;
 import com.loopers.utils.DatabaseCleanUp;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,12 +20,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
-class ProductServiceIntegrationTest {
+class ProductUseCaseIntegrationTest {
 
+    @Autowired
+    private ProductFacade productFacade;
     @Autowired
     private BrandService brandService;
     @Autowired
     private ProductService productService;
+    @Autowired
+    private LikeService likeService;
 
     @Autowired
     private DatabaseCleanUp databaseCleanUp;
@@ -90,7 +99,6 @@ class ProductServiceIntegrationTest {
             productService.create(outOfStockProduct);
 
             // act
-//            List<Product> result = productService.productList();
             Page<Product> result = productService.productList(null, "latest", 0, 20);
 
             // assert
@@ -186,6 +194,42 @@ class ProductServiceIntegrationTest {
             );
 
         }
+
+        @DisplayName("내가 좋아요한 상품정보 목록을 조회한다.")
+        @Test
+        void returnLikedProductsInfo_whenFindMyLikedProducts() {
+            // arrange
+            Product product1 = productService.create(Product.of(brandAId, "활성상품1", "설명", 100, 10, 10, ProductStatus.ACTIVE));
+            Product product2 = productService.create(Product.of(brandBId, "활성상품2", "설명", 200, 10, 10, ProductStatus.ACTIVE));
+            productService.create(Product.of(brandAId, "비활성상품", "설명", 300, 10, 10, ProductStatus.INACTIVE));
+
+            likeService.like(1l, product1.getId(), LikeType.PRODUCT);
+            likeService.like(1l, product2.getId(), LikeType.PRODUCT);
+
+            // act
+            Page<Product> result = productFacade.getLikedProducts(1l, LikeType.PRODUCT, 0, 10);
+
+            // assert
+            assertThat(result.getTotalElements()).isEqualTo(2); // 좋아요 한 상품은 총 2개
+            // ID를 추출하여 좋아요 한 상품들의 ID와 일치하는지 확인 (좋아요 안 한 상품은 없는지 확인)
+            assertThat(result.getContent()).extracting("id")
+                    .containsExactlyInAnyOrder(product1.getId(), product2.getId());
+        }
+
+        @DisplayName("좋아요 한 상품이 없을 경우, 빈 페이지가 반환된다.")
+        @Test
+        void returnEmptyPage_whenUserHasNoLikes() {
+            // arrange
+            Long userWithNoLikes = 2L;
+
+            // act
+            Page<Product> result = productFacade.getLikedProducts(userWithNoLikes, LikeType.PRODUCT, 0, 10);
+
+            // assert
+            assertThat(result.getTotalElements()).isEqualTo(0);
+            assertThat(result.getContent()).isEmpty();
+        }
+
 
     }
 
