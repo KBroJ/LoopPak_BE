@@ -22,37 +22,27 @@ public class OrderService {
     @Transactional
     public Order placeOrder(Long userId, PointModel userPoint, List<Product> products, Map<Long, Integer> quantityMap) {
 
-        // 1. 전달받은 Product 객체들로 OrderItem 리스트를 생성하면서 재고를 차감합니다.
         List<OrderItem> orderItems = products.stream()
                 .map(product -> {
                     int quantity = quantityMap.get(product.getId());
-                    product.decreaseStock(quantity); // 재고 차감
+                    product.decreaseStock(quantity);
                     return OrderItem.of(product.getId(), quantity, product.getPrice());
                 })
                 .toList();
 
-        // 2. Order 엔티티를 생성하고 총 주문 금액을 계산합니다.
         Order newOrder = Order.of(userId, orderItems);
         long totalPrice = newOrder.calculateTotalPrice();
 
-        // 3. 전달받은 Point 객체에서 포인트를 차감합니다.
         userPoint.use(totalPrice);
 
-        // 4. 주문을 저장하고 반환합니다.
         return orderRepository.save(newOrder);
     }
 
-    /**
-     * 특정 사용자의 주문 목록을 조회하는 기능을 추가합니다.
-     */
     @Transactional(readOnly = true)
     public Page<Order> findByUserId(Long userId, Pageable pageable) {
         return orderRepository.findByUserId(userId, pageable);
     }
 
-    /**
-     * 단일 주문 상세 조회
-     */
     @Transactional(readOnly = true)
     public Order findByIdWithItems(Long orderId) {
         return orderRepository.findByIdWithItems(orderId)

@@ -45,7 +45,6 @@ public class PointModel extends BaseEntity {
         this.point += amount;
     }
 
-    // 포인트 사용 로직을 PointModel 엔티티 내부에 캡슐화합니다.
     public void use(Long amount) {
         if (amount == null || amount <= 0) {
             throw new CoreException(ErrorType.BAD_REQUEST, "사용할 포인트는 0보다 커야 합니다.");

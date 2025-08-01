@@ -21,8 +21,8 @@ class OrderTest {
             // arrange
             Long userId = 1L;
             List<OrderItem> orderItems = List.of(
-                    OrderItem.of(1L, 2, 10000), // 20000원
-                    OrderItem.of(2L, 1, 5000)   // 5000원
+                    OrderItem.of(1L, 2, 10000),
+                    OrderItem.of(2L, 1, 5000)
             );
 
             // act
@@ -47,8 +47,8 @@ class OrderTest {
             // arrange
             Long userId = 1L;
             List<OrderItem> orderItems = List.of(
-                    OrderItem.of(1L, 2, 10000), // 20000원
-                    OrderItem.of(2L, 3, 5000)   // 15000원
+                    OrderItem.of(1L, 2, 10000),
+                    OrderItem.of(2L, 3, 5000)
             );
             Order order = Order.of(userId, orderItems);
 
@@ -65,7 +65,7 @@ class OrderTest {
             // arrange
             Long userId = 1L;
             List<OrderItem> orderItems = List.of(
-                    OrderItem.of(101L, 5, 1000) // 5000원
+                    OrderItem.of(101L, 5, 1000)
             );
             Order order = Order.of(userId, orderItems);
 
@@ -81,7 +81,7 @@ class OrderTest {
         void calculateTotalPrice_withNoItems() {
             // arrange
             Long userId = 1L;
-            List<OrderItem> orderItems = List.of(); // 빈 리스트
+            List<OrderItem> orderItems = List.of();
             Order order = Order.of(userId, orderItems);
 
             // act

@@ -12,7 +12,7 @@ public record OrderItemResponse(
     public static OrderItemResponse of(OrderItem orderItem, Product product) {
         return new OrderItemResponse(
                 orderItem.getProductId(),
-                product != null ? product.getName() : "알 수 없는 상품", // 상품 정보가 없을 경우 대비
+                product != null ? product.getName() : "알 수 없는 상품",
                 orderItem.getQuantity(),
                 orderItem.getPrice()
         );

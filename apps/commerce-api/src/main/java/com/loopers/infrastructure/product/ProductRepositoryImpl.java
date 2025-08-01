@@ -22,10 +22,8 @@ public class ProductRepositoryImpl implements ProductRepository {
         return productJpaRepository.save(product);
     }
 
-    // ProductRepository의 새로운 search 메서드를 구현합니다.
     @Override
     public Page<Product> productList(Specification<Product> spec, Pageable pageable) {
-        // 실제 쿼리 실행은 JpaSpecificationExecutor가 제공하는 findAll 메서드에 위임합니다.
         return productJpaRepository.findAll(spec, pageable);
     }
 

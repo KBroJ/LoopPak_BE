@@ -3,6 +3,8 @@ package com.loopers.application.brand;
 import com.loopers.domain.brand.Brand;
 import com.loopers.domain.brand.BrandRepository;
 import com.loopers.domain.brand.BrandService;
+import com.loopers.support.error.CoreException;
+import com.loopers.support.error.ErrorType;
 import com.loopers.utils.DatabaseCleanUp;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -15,6 +17,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
 @SpringBootTest
@@ -73,10 +76,12 @@ class BrandUseCaseIntegrationTest {
             Long brandId = 2l;
 
             // act
-            Optional<Brand> result = brandService.brandInfo(brandId);
+            CoreException result = assertThrows(CoreException.class, () -> {
+                brandService.brandInfo(brandId);
+            });
 
             // assert
-            assertThat(result).isEmpty();
+            assertThat(result.getErrorType()).isEqualTo(ErrorType.NOT_FOUND);
 
         }
 
@@ -89,15 +94,15 @@ class BrandUseCaseIntegrationTest {
             Brand brandInfo = brandService.create(brand);
 
             // act
-            Optional<Brand> result = brandService.brandInfo(brandInfo.getId());
+            Brand result = brandService.brandInfo(brandInfo.getId());
 
             // assert
             assertAll(
-                    () -> assertThat(result).isNotEmpty(),
-                    () -> assertThat(result.get().getId()).isEqualTo(brandInfo.getId()),
-                    () -> assertThat(result.get().getName()).isEqualTo(NAME),
-                    () -> assertThat(result.get().getDescription()).isEqualTo(DESCRIPTION),
-                    () -> assertThat(result.get().getIsActive()).isEqualTo(IS_ACTICE)
+                    () -> assertThat(result).isNotNull(),
+                    () -> assertThat(result.getId()).isEqualTo(brandInfo.getId()),
+                    () -> assertThat(result.getName()).isEqualTo(NAME),
+                    () -> assertThat(result.getDescription()).isEqualTo(DESCRIPTION),
+                    () -> assertThat(result.getIsActive()).isEqualTo(IS_ACTICE)
             );
 
         }

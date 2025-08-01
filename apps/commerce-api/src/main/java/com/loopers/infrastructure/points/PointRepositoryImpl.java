@@ -31,7 +31,6 @@ public class PointRepositoryImpl implements PointRepository {
 
     @Override
     public Optional<PointModel> findByUserId(Long userId) {
-        // JpaRepository에 새로 추가된 기능에 위임
         return pointJpaRepository.findByUserModel_Id(userId);
     }
 

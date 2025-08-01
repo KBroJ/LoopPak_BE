@@ -16,9 +16,6 @@ public class LikeService {
 
     private final LikeRepository likeRepository;
 
-    /**
-     * 상품에 대한 '좋아요'를 추가합니다.
-     */
     @Transactional
     public void like(Long userId, Long targetId, LikeType likeType) {
 
@@ -30,9 +27,6 @@ public class LikeService {
 
     }
 
-    /**
-     * 상품에 대한 '좋아요'를 해제합니다.
-     */
     @Transactional
     public void unLike(Long userId, Long targetId, LikeType likeType) {
 
@@ -52,11 +46,6 @@ public class LikeService {
                 .toList();
     }
 
-    /**
-     * 여러 상품 ID에 대한 좋아요 수를 Map 형태로 반환합니다.
-     * @param productIds 상품 ID 리스트
-     * @return Map<productId, likeCount>
-     */
     public Map<Long, Long> getLikeCounts(List<Long> productIds) {
         if (productIds == null || productIds.isEmpty()) {
             return Collections.emptyMap();

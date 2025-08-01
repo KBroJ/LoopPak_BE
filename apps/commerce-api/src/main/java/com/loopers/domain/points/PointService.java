@@ -48,10 +48,6 @@ public class PointService {
         return savedPoint;
     }
 
-    /**
-     * User의 PK(id)를 이용해 포인트 정보를 조회합니다.
-     * OrderFacade에서 사용됩니다.
-     */
     @Transactional(readOnly = true)
     public PointModel getPointByUserId(Long userId) {
         return pointRepository.findByUserId(userId)

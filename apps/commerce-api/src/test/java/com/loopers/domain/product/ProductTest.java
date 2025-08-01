@@ -80,7 +80,7 @@ class ProductTest {
     void throwsBadRequestException_whenPriceIsZeroOrNegative() {
 
         // Arrange
-        long price = -1; // 0 미만의 가격
+        long price = -1;
 
         // Act
         CoreException result = assertThrows(CoreException.class, () -> {
@@ -98,7 +98,7 @@ class ProductTest {
     void throwsBadRequestException_whenStockIsZeroOrNegative() {
 
         // Arrange
-        int stock = -1; // 0 미만의 재고
+        int stock = -1;
 
         // Act
         CoreException result = assertThrows(CoreException.class, () -> {
@@ -116,7 +116,7 @@ class ProductTest {
     void throwsBadRequestException_whenMaxOrderQuantityIsZeroOrNegative() {
 
         // Arrange
-        int maxOrderQuantity = -1; // 0 이하의 최대 주문 수량
+        int maxOrderQuantity = -1;
 
         // Act
         CoreException result = assertThrows(CoreException.class, () -> {
@@ -134,7 +134,7 @@ class ProductTest {
     void throwsBadRequestException_whenStatusIsNull() {
 
         // Arrange
-        ProductStatus status = null; // 상태가 null
+        ProductStatus status = null;
 
         // Act
         CoreException result = assertThrows(CoreException.class, () -> {
