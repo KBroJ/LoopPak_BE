@@ -58,7 +58,7 @@ class ExampleServiceIntegrationTest {
         @Test
         void throwsException_whenInvalidIdIsProvided() {
             // arrange
-            Long invalidId = 999L; // Assuming this ID does not exist
+            Long invalidId = 999L;
 
             // act
             CoreException exception = assertThrows(CoreException.class, () -> {

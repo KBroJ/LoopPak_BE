@@ -88,9 +88,6 @@ public class PointV1ApiE2ETest {
             ResponseEntity<ApiResponse<UsersV1Dto.UsersResponse>> response =
                     testRestTemplate.exchange(requestUrl, HttpMethod.GET, new HttpEntity<>(null, null), responseType);
 
-            System.out.println("예외처리 응답 상태 코드: " + response.getStatusCode());
-            System.out.println("예외처리 응답 본문: " + response.getBody());
-
             // assert
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
 

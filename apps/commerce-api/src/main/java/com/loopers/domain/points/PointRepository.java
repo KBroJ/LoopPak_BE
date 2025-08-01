@@ -13,4 +13,6 @@ public interface PointRepository {
     PointModel save(PointModel pointModel);
 
     Optional<PointModel> findByUserModelWithUser(@Param("user") UserModel user);
+
+    Optional<PointModel> findByUserId(Long userId);
 }
