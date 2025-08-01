@@ -15,7 +15,6 @@ class LikeTest {
     private final Long TARGET_ID = 2l;
     private final LikeType TYPE_PRODUCT = LikeType.PRODUCT;
 
-
     @DisplayName("좋아요 생성할 때")
     @Nested
     class Create {

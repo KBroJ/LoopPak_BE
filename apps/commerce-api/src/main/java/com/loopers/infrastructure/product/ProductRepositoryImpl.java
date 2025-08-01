@@ -39,5 +39,10 @@ public class ProductRepositoryImpl implements ProductRepository {
         return productJpaRepository.findByIdIn(productIds, pageable);
     }
 
+    @Override
+    public List<Product> findAllById(List<Long> productIds) {
+        return productJpaRepository.findAllById(productIds);
+    }
+
 
 }

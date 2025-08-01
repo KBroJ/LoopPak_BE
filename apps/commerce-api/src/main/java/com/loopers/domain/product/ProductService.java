@@ -9,6 +9,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -51,7 +52,7 @@ public class ProductService {
     }
 
     /**
-     * 상품 정보 조회
+     * productId로 상품 정보 조회
      */
     public Optional<Product> productInfo(Long productId) {
         return productRepository.productInfo(productId);
@@ -68,6 +69,17 @@ public class ProductService {
             return Page.empty(pageable);
         }
         return productRepository.findByIdIn(productIds, pageable);
+    }
+
+    /**
+     *  Order : ID 목록으로 상품 목록을 조회하는 메서드 추가
+     */
+    @Transactional(readOnly = true)
+    public List<Product> findProductsByIds(List<Long> productIds) {
+        if (productIds == null || productIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return productRepository.findAllById(productIds);
     }
 
 }

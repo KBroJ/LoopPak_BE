@@ -13,4 +13,7 @@ public interface PointRepository {
     PointModel save(PointModel pointModel);
 
     Optional<PointModel> findByUserModelWithUser(@Param("user") UserModel user);
+
+    // User PK로 Point를 찾는 메서드 시그니처 추가
+    Optional<PointModel> findByUserId(Long userId);
 }
