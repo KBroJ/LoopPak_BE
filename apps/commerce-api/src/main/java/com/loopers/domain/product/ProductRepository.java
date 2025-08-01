@@ -19,4 +19,6 @@ public interface ProductRepository {
     Page<Product> findByIdIn(List<Long> productIds, Pageable pageable);
 
     List<Product> findAllById(List<Long> productIds);
+
+    Page<Product> findActiveProductsOrderByLikesDesc(Long brandId, Pageable pageable);
 }

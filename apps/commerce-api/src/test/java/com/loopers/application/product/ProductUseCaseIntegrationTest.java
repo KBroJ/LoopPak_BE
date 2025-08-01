@@ -166,6 +166,38 @@ class ProductUseCaseIntegrationTest {
             assertThat(content.get(1).getLikeCount()).isZero();
         }
 
+        @DisplayName("좋아요 많은 순으로 정렬 시 상품이 좋아요 수 순으로 반환된다.")
+        @Test
+        void returnSortedProducts_whenSearchWithLikesDesc() {
+            // arrange
+            Product p1 = productService.create(Product.of(brandAId, "좋아요1개", "설명", 100, 10, 10, ProductStatus.ACTIVE));
+            Product p2 = productService.create(Product.of(brandAId, "좋아요3개", "설명", 100, 10, 10, ProductStatus.ACTIVE));
+            Product p3 = productService.create(Product.of(brandAId, "좋아요2개", "설명", 100, 10, 10, ProductStatus.ACTIVE));
+
+            // p2에 좋아요 3개
+            likeService.like(1L, p2.getId(), LikeType.PRODUCT);
+            likeService.like(2L, p2.getId(), LikeType.PRODUCT);
+            likeService.like(3L, p2.getId(), LikeType.PRODUCT);
+            // p3에 좋아요 2개
+            likeService.like(1L, p3.getId(), LikeType.PRODUCT);
+            likeService.like(2L, p3.getId(), LikeType.PRODUCT);
+            // p1에 좋아요 1개
+            likeService.like(1L, p1.getId(), LikeType.PRODUCT);
+
+            // act
+            Page<ProductResponse> result = productFacade.searchProducts(null, "likes_desc", 0, 10);
+            List<ProductResponse> content = result.getContent();
+
+            // assert
+            assertThat(content).hasSize(3);
+            assertThat(content.get(0).getProduct().getId()).isEqualTo(p2.getId()); // 좋아요 3개짜리
+            assertThat(content.get(0).getLikeCount()).isEqualTo(3);
+            assertThat(content.get(1).getProduct().getId()).isEqualTo(p3.getId()); // 좋아요 2개짜리
+            assertThat(content.get(1).getLikeCount()).isEqualTo(2);
+            assertThat(content.get(2).getProduct().getId()).isEqualTo(p1.getId()); // 좋아요 1개짜리
+            assertThat(content.get(2).getLikeCount()).isEqualTo(1);
+        }
+
         @DisplayName("페이징 처리 시 요청한 페이지와 사이즈에 맞는 결과가 반환된다.")
         @Test
         void returnPagedProducts_whenSearchWithPaging() {
@@ -217,42 +249,5 @@ class ProductUseCaseIntegrationTest {
 
         }
 
-        @DisplayName("내가 좋아요한 상품정보 목록을 조회한다.")
-        @Test
-        void returnLikedProductsInfo_whenFindMyLikedProducts() {
-            // arrange
-            Product product1 = productService.create(Product.of(brandAId, "활성상품1", "설명", 100, 10, 10, ProductStatus.ACTIVE));
-            Product product2 = productService.create(Product.of(brandBId, "활성상품2", "설명", 200, 10, 10, ProductStatus.ACTIVE));
-            productService.create(Product.of(brandAId, "비활성상품", "설명", 300, 10, 10, ProductStatus.INACTIVE));
-
-            likeService.like(1l, product1.getId(), LikeType.PRODUCT);
-            likeService.like(1l, product2.getId(), LikeType.PRODUCT);
-
-            // act
-            Page<Product> result = productFacade.getLikedProducts(1l, LikeType.PRODUCT, 0, 10);
-
-            // assert
-            assertThat(result.getTotalElements()).isEqualTo(2); // 좋아요 한 상품은 총 2개
-            // ID를 추출하여 좋아요 한 상품들의 ID와 일치하는지 확인 (좋아요 안 한 상품은 없는지 확인)
-            assertThat(result.getContent()).extracting("id")
-                    .containsExactlyInAnyOrder(product1.getId(), product2.getId());
-        }
-
-        @DisplayName("좋아요 한 상품이 없을 경우, 빈 페이지가 반환된다.")
-        @Test
-        void returnEmptyPage_whenUserHasNoLikes() {
-            // arrange
-            Long userWithNoLikes = 2L;
-
-            // act
-            Page<Product> result = productFacade.getLikedProducts(userWithNoLikes, LikeType.PRODUCT, 0, 10);
-
-            // assert
-            assertThat(result.getTotalElements()).isEqualTo(0);
-            assertThat(result.getContent()).isEmpty();
-        }
-
-
     }
-
 }

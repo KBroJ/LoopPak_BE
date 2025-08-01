@@ -42,5 +42,9 @@ public class ProductRepositoryImpl implements ProductRepository {
         return productJpaRepository.findAllById(productIds);
     }
 
+    @Override
+    public Page<Product> findActiveProductsOrderByLikesDesc(Long brandId, Pageable pageable) {
+        return productJpaRepository.findActiveProductsOrderByLikesDesc(brandId, pageable);
+    }
 
 }

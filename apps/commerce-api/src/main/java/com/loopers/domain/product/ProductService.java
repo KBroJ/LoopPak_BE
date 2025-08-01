@@ -27,6 +27,11 @@ public class ProductService {
     @Transactional(readOnly = true)
     public Page<Product> productList(Long brandId, String sort, int page, int size) {
 
+        if ("likes_desc".equals(sort)) {
+            Pageable pageable = PageRequest.of(page, size);
+            return productRepository.findActiveProductsOrderByLikesDesc(brandId, pageable);
+        }
+
         Sort sortCondition = switch (sort) {
             case "price_asc" -> Sort.by(Sort.Direction.ASC, "price");
             default -> Sort.by(Sort.Direction.DESC, "createdAt");
