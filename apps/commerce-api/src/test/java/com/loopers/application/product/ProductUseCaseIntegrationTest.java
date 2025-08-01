@@ -85,7 +85,7 @@ class ProductUseCaseIntegrationTest {
 
         @DisplayName("기본 조건(brandId 없음, 최신순)으로 조회 시 활성화된 모든 상품이 최신순으로 반환된다.")
         @Test
-        void returnAllActiveProducts_whenSearchWithDefaultConditions() throws InterruptedException {
+        void returnAllActiveProductsWithLikeCount_whenSearchWithDefaultConditions() throws InterruptedException {
 
             // arrange
             Product activeProduct1 = Product.of(brandAId, "활성상품1", "설명", 100, 10, 10, ProductStatus.ACTIVE);

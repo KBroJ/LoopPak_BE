@@ -23,7 +23,7 @@ public class ProductFacade {
     private final LikeService likeService;
 
     /**
-     * 상품 목록을 '좋아요' 수와 함께 조회합니다.
+     * 상품 목록을 '좋아요' 수와 함께 조회
      */
     @Transactional(readOnly = true)
     public Page<ProductResponse> searchProducts(Long brandId, String sort, int page, int size) {

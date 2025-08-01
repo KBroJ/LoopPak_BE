@@ -24,11 +24,7 @@ public class ProductService {
     }
 
     /**
-     * 상품 목록을 동적으로 검색합니다.
-     * @param brandId 브랜드 ID (필터링 조건, optional)
-     * @param sort 정렬 기준 ("latest", "price_asc")
-     * @param page 페이지 번호
-     * @param size 페이지 당 상품 수
+     * 상품 목록 조회 : 상품 목록을 동적으로 검색합니다.
      * @return 페이징 및 정렬이 적용된 상품 목록
      */
     @Transactional(readOnly = true)
@@ -54,14 +50,15 @@ public class ProductService {
         return productRepository.productList(spec, pageable);
     }
 
+    /**
+     * 상품 정보 조회
+     */
     public Optional<Product> productInfo(Long productId) {
         return productRepository.productInfo(productId);
     }
 
     /**
-     * 좋아요 한 상품 ID 목록으로 상품 정보를 페이징하여 조회합니다.
-     * @param productIds 상품 ID 리스트
-     * @param pageable 페이징 및 정렬 정보
+     * 내가 좋아요 한 상품 목록 조회 : 좋아요 한 상품 ID 목록으로 상품 정보를 페이징하여 조회합니다.
      * @return 페이징 처리된 상품 목록
      */
     @Transactional(readOnly = true)
