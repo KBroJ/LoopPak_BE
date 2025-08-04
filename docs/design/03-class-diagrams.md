@@ -1,82 +1,5 @@
 # 종합 클래스 다이어그램
 
-## AsIs
-```mermaid
-classDiagram
-
-    class User {
-        - id: Long
-        - userId: String
-        - gender: Gender
-        - birthDate: String
-        - email: String
-    }
-    
-    class Point {
-        - id: Long
-        - userId: Long
-        - amount: BigDecimal
-    }
-    
-    class Brand {
-        - id: Long
-        - brandId: String
-        - name: String
-        - description: String
-        - logoUrl: String
-        - isActive: Boolean
-        - createdAt: LocalDateTime
-        - updatedAt: LocalDateTime
-        - deletedAt: LocalDateTime
-    }
-    
-    class Product {
-        - id: Long
-        - Brand brand
-        - productId: String
-        - name: String
-        - description: String
-        - price: BigDecimal
-        - stock: Integer
-        - maxOrderCount: Integer
-        - status: String
-        - createdAt: LocalDateTime
-        - updatedAt: LocalDateTime
-        - deletedAt: LocalDateTime
-    }
-    
-    class Like {
-        - id: Long
-        - userId: Long
-        - productId: Long
-        - createdAt: LocalDateTime
-    }
-    
-    class Order {
-        - id: Long
-        - orderId: String
-        - userId: Long
-        - productId: Long
-        - quantity: Integer
-        - totalPrice: BigDecimal
-        - status: String
-        - createdAt: LocalDateTime
-        - updatedAt: LocalDateTime
-    }
-
-    User "1" -- "1" Point : 포인트 소유
-    User "1" -- "0..*" Order : 유저는 다수의 주문 가능
-    User "1" -- "0..*" Like : 유저는 다수의 상품에 좋아요 가능
-
-    Brand "1" -- "0..*" Product : 브랜드는 다수의 상품 소유
-
-    Product "1" -- "0..*" Order : 상품은 다수의 주문 수용
-    Product "1" -- "0..*" Like : 상품은 다수의 좋아요 가능
-    
-```
-
----
-## ToBe
 ```mermaid
 classDiagram
 
@@ -99,13 +22,13 @@ classDiagram
     
     class Product {
         - Long id
+        - Long brandId
         - String name
         - String description
         - BigDecimal price
         - Integer stock
         - Integer maxOrderCount
         - ProductStatus status
-        - Brand brand
         
         + increaseStock(int quantity)
         + decreaseStock(int quantity)
@@ -134,7 +57,7 @@ classDiagram
     
     class Like {
         - Long id
-        - User user
+        - Long userId
         - Long targetId
         - LikeType type
     }
@@ -146,31 +69,28 @@ classDiagram
     
     class Order {
         - Long id
-        - User user
-        - List<OrderItem> orderItems
-        - BigDecimal totalPrice
+        - Long userId
+        - List~OrderItem~ orderItems
         - OrderStatus status
-        - LocalDateTime orderDate
         
-        %% 주문을 생성
-        + addOrderItem(Product product, int quantity)
-
-        %% 주문을 확정
-        + confirmOrder(User user, BigDecimal pointsToUse)
-        + cancel()
+        + +calculateTotalPrice() long
     }
     
     class OrderItem {
         - Long id
-        - Product product
-        - Integer quantity
-        - BigDecimal price
+        - Long productId
+        - int quantity
+        - long price
+        
+        + getTotalPrice() long
     }
     
     class OrderStatus {
         <<enumeration>>
         PENDING
-        COMPLETED
+        PAID
+        SHIPPED
+        DELIVERED
         CANCELLED
     }
     
