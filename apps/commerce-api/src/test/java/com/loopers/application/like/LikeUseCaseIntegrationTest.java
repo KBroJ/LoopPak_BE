@@ -1,9 +1,9 @@
 package com.loopers.application.like;
 
+import com.loopers.application.brand.BrandApplicationService;
+import com.loopers.application.brand.BrandInfo;
 import com.loopers.application.users.UserApplicationService;
 import com.loopers.application.users.UserInfo;
-import com.loopers.domain.brand.Brand;
-import com.loopers.domain.brand.BrandService;
 import com.loopers.domain.like.Like;
 import com.loopers.domain.like.LikeRepository;
 import com.loopers.domain.like.LikeType;
@@ -31,7 +31,7 @@ class LikeUseCaseIntegrationTest {
     @Autowired
     private ProductService productService;
     @Autowired
-    private BrandService brandService;
+    private BrandApplicationService brandApplicationService;
     @Autowired
     private LikeRepository likeRepository;
     @Autowired
@@ -44,8 +44,8 @@ class LikeUseCaseIntegrationTest {
     @BeforeEach
     void setUp() {
         userInfo = userApplicationService.saveUser("userid", "MALE", "2025-07-14", "test@test.kr");
-        Brand brandA = brandService.create(Brand.of("브랜드A", "설명", true));
-        brandAId = brandA.getId();
+        BrandInfo brandA = brandApplicationService.create("브랜드A", "설명", true);
+        brandAId = brandA.id();
         product1 = productService.create(Product.of(
                 brandAId, "상품명1", "설명", 100, 10, 10, ProductStatus.ACTIVE
         ));

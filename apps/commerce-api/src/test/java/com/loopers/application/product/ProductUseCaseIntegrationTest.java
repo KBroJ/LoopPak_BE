@@ -1,7 +1,7 @@
 package com.loopers.application.product;
 
-import com.loopers.domain.brand.Brand;
-import com.loopers.domain.brand.BrandService;
+import com.loopers.application.brand.BrandApplicationService;
+import com.loopers.application.brand.BrandInfo;
 import com.loopers.domain.like.LikeService;
 import com.loopers.domain.like.LikeType;
 import com.loopers.domain.product.Product;
@@ -26,7 +26,7 @@ class ProductUseCaseIntegrationTest {
     @Autowired
     private ProductFacade productFacade;
     @Autowired
-    private BrandService brandService;
+    private BrandApplicationService brandApplicationService;
     @Autowired
     private ProductService productService;
     @Autowired
@@ -40,10 +40,10 @@ class ProductUseCaseIntegrationTest {
     @BeforeEach
     void setUp() {
         // 각 테스트 전에 독립적인 브랜드 데이터를 생성합니다.
-        Brand brandA = brandService.create(Brand.of("브랜드A", "설명", true));
-        Brand brandB = brandService.create(Brand.of("브랜드B", "설명", true));
-        brandAId = brandA.getId();
-        brandBId = brandB.getId();
+        BrandInfo brandA = brandApplicationService.create("브랜드A", "설명", true);
+        BrandInfo brandB = brandApplicationService.create("브랜드B", "설명", true);
+        brandAId = brandA.id();
+        brandBId = brandB.id();
     }
 
     @AfterEach

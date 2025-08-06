@@ -1,10 +1,10 @@
 package com.loopers.application.order;
 
+import com.loopers.application.brand.BrandApplicationService;
+import com.loopers.application.brand.BrandInfo;
 import com.loopers.application.points.PointApplicationService;
 import com.loopers.application.users.UserApplicationService;
 import com.loopers.application.users.UserInfo;
-import com.loopers.domain.brand.Brand;
-import com.loopers.domain.brand.BrandService;
 import com.loopers.domain.order.Order;
 import com.loopers.domain.order.OrderItemRequest;
 import com.loopers.domain.order.OrderRequest;
@@ -34,7 +34,7 @@ class OrderUsecaseIntegrationTest {
     @Autowired
     private UserApplicationService userApplicationService;
     @Autowired
-    private BrandService brandService;
+    private BrandApplicationService brandApplicationService;
     @Autowired
     private ProductService productService;
     @Autowired
@@ -51,9 +51,9 @@ class OrderUsecaseIntegrationTest {
     void setUp() {
         testUser = userApplicationService.saveUser("testuser", "MALE", "2000-01-01", "test@test.com");
 
-        Brand brand = brandService.create(Brand.of("테스트브랜드", "", true));
-        product1 = productService.create(Product.of(brand.getId(), "상품1", "", 10000, 10, 10, ProductStatus.ACTIVE));
-        product2 = productService.create(Product.of(brand.getId(), "상품2", "", 5000, 10, 10, ProductStatus.ACTIVE));
+        BrandInfo brand = brandApplicationService.create("테스트브랜드", "", true);
+        product1 = productService.create(Product.of(brand.id(), "상품1", "", 10000, 10, 10, ProductStatus.ACTIVE));
+        product2 = productService.create(Product.of(brand.id(), "상품2", "", 5000, 10, 10, ProductStatus.ACTIVE));
 
         pointApplicationService.chargePoint(testUser.userId(), 100000L);
 

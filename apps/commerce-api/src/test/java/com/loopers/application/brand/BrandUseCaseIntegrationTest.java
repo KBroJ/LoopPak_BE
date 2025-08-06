@@ -1,8 +1,6 @@
 package com.loopers.application.brand;
 
-import com.loopers.domain.brand.Brand;
 import com.loopers.domain.brand.BrandRepository;
-import com.loopers.domain.brand.BrandService;
 import com.loopers.support.error.CoreException;
 import com.loopers.support.error.ErrorType;
 import com.loopers.utils.DatabaseCleanUp;
@@ -13,18 +11,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import java.util.Optional;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
 
 @SpringBootTest
 class BrandUseCaseIntegrationTest {
 
     @Autowired
-    private BrandService brandService;
+    private BrandApplicationService brandApplicationService;
     @Autowired
     private BrandRepository brandRepository;
 
@@ -47,18 +42,17 @@ class BrandUseCaseIntegrationTest {
         void returnBrand_whenCreateBrand() {
 
             // arrange
-            Brand brand = Brand.of(NAME, DESCRIPTION, IS_ACTICE);
 
             // act
-            Brand result = brandService.create(brand);
+            BrandInfo result = brandApplicationService.create(NAME, DESCRIPTION, IS_ACTICE);
 
             // assert
             assertAll(
                 () -> assertThat(result).isNotNull(),
-                () -> assertThat(result.getId()).isNotNull(),
-                () -> assertThat(result.getName()).isEqualTo(NAME),
-                () -> assertThat(result.getDescription()).isEqualTo(DESCRIPTION),
-                () -> assertThat(result.getIsActive()).isEqualTo(IS_ACTICE)
+                () -> assertThat(result.id()).isNotNull(),
+                () -> assertThat(result.name()).isEqualTo(NAME),
+                () -> assertThat(result.description()).isEqualTo(DESCRIPTION),
+                () -> assertThat(result.isActive()).isEqualTo(IS_ACTICE)
             );
 
         }
@@ -77,7 +71,7 @@ class BrandUseCaseIntegrationTest {
 
             // act
             CoreException result = assertThrows(CoreException.class, () -> {
-                brandService.brandInfo(brandId);
+                brandApplicationService.getBrand(brandId);
             });
 
             // assert
@@ -90,19 +84,18 @@ class BrandUseCaseIntegrationTest {
         void returnBrandInfo_whenFindBrandInfo() {
 
             // arrange
-            Brand brand = Brand.of(NAME, DESCRIPTION, IS_ACTICE);
-            Brand brandInfo = brandService.create(brand);
+            BrandInfo brandInfo = brandApplicationService.create(NAME, DESCRIPTION, IS_ACTICE);
 
             // act
-            Brand result = brandService.brandInfo(brandInfo.getId());
+            BrandInfo result = brandApplicationService.getBrand(brandInfo.id());
 
             // assert
             assertAll(
                     () -> assertThat(result).isNotNull(),
-                    () -> assertThat(result.getId()).isEqualTo(brandInfo.getId()),
-                    () -> assertThat(result.getName()).isEqualTo(NAME),
-                    () -> assertThat(result.getDescription()).isEqualTo(DESCRIPTION),
-                    () -> assertThat(result.getIsActive()).isEqualTo(IS_ACTICE)
+                    () -> assertThat(result.id()).isEqualTo(brandInfo.id()),
+                    () -> assertThat(result.name()).isEqualTo(NAME),
+                    () -> assertThat(result.description()).isEqualTo(DESCRIPTION),
+                    () -> assertThat(result.isActive()).isEqualTo(IS_ACTICE)
             );
 
         }
