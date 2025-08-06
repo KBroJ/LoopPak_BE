@@ -1,8 +1,8 @@
 package com.loopers.interfaces.api.points;
 
 import com.loopers.application.points.PointApplicationService;
-import com.loopers.domain.users.User;
-import com.loopers.domain.users.UserService;
+import com.loopers.application.users.UserApplicationService;
+import com.loopers.application.users.UserInfo;
 import com.loopers.interfaces.api.ApiResponse;
 import com.loopers.interfaces.api.users.UsersV1Dto;
 import com.loopers.utils.DatabaseCleanUp;
@@ -23,19 +23,19 @@ public class PointV1ApiE2ETest {
 
     private final TestRestTemplate testRestTemplate;
     private final DatabaseCleanUp databaseCleanUp;
-    private final UserService userService;
+    private final UserApplicationService userApplicationService;
     private final PointApplicationService pointApplicationService;
 
     @Autowired
     public PointV1ApiE2ETest(
             TestRestTemplate testRestTemplate,
             DatabaseCleanUp databaseCleanUp,
-            UserService userService,
+            UserApplicationService userApplicationService,
             PointApplicationService pointApplicationService
     ) {
         this.testRestTemplate = testRestTemplate;
         this.databaseCleanUp = databaseCleanUp;
-        this.userService = userService;
+        this.userApplicationService = userApplicationService;
         this.pointApplicationService = pointApplicationService;
     }
 
@@ -53,11 +53,11 @@ public class PointV1ApiE2ETest {
         void returnPointInfo_whenGetPointInfoByUserId() {
 
             // arrange
-            User user = userService.saveUser(
+            UserInfo user = userApplicationService.saveUser(
                     "testUser", "MALE", "2025-07-15", "test@test.com"
             );
 
-            pointApplicationService.chargePoint(user.getUserId(), 100L);
+            pointApplicationService.chargePoint(user.userId(), 100L);
 
             String requestUrl = "/api/v1/points";
             var headers = new HttpHeaders();
@@ -101,13 +101,13 @@ public class PointV1ApiE2ETest {
         void returnAllChargedPoints_whenChargePoints() {
 
             // arrange
-            User user = userService.saveUser(
+            UserInfo user = userApplicationService.saveUser(
                     "testUser", "MALE", "2025-07-15", "test@test.com"
             );
 
             String requestUrl = "/api/v1/points/charge";
             var headers = new HttpHeaders();
-            headers.set("X-USER-ID", user.getUserId());
+            headers.set("X-USER-ID", user.userId());
             PointsV1Dto.PointRequest request = new  PointsV1Dto.PointRequest(
                     1000L
             );

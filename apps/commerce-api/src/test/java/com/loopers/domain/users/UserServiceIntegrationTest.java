@@ -1,5 +1,7 @@
 package com.loopers.domain.users;
 
+import com.loopers.application.users.UserApplicationService;
+import com.loopers.application.users.UserInfo;
 import com.loopers.support.error.CoreException;
 import com.loopers.support.error.ErrorType;
 import com.loopers.utils.DatabaseCleanUp;
@@ -20,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class UserServiceIntegrationTest {
 
     @Autowired
-    private UserService userService;
+    private UserApplicationService userApplicationService;
 
     @MockitoSpyBean
     private UserRepository userRepository;
@@ -50,7 +52,7 @@ class UserServiceIntegrationTest {
             // arrange
 
             // act
-            userService.saveUser(
+            userApplicationService.saveUser(
                 VALID_USER_ID, VALID_GENDER, VALID_BIRTH_DATE, VALID_EMAIL
             );
 
@@ -64,13 +66,13 @@ class UserServiceIntegrationTest {
         void failSaveUser_whenDuplicateUserId() {
 
             // arrange
-            userService.saveUser(
+            userApplicationService.saveUser(
                     VALID_USER_ID, VALID_GENDER, VALID_BIRTH_DATE, VALID_EMAIL
             );
 
             // act
             CoreException exception = assertThrows(CoreException.class, () -> {
-                userService.saveUser(
+                userApplicationService.saveUser(
                         DUPULICATE_USER_ID, VALID_GENDER, VALID_BIRTH_DATE, VALID_EMAIL
                 );
             });
@@ -91,21 +93,21 @@ class UserServiceIntegrationTest {
         void findUserInfo_whenUserIdExists() {
 
             // arrange
-            userService.saveUser(
+            userApplicationService.saveUser(
                     VALID_USER_ID, VALID_GENDER, VALID_BIRTH_DATE, VALID_EMAIL
             );
 
             // act
-            User result = userService.getMyInfo(VALID_USER_ID);
+            UserInfo result = userApplicationService.getMyInfo(VALID_USER_ID);
 
             // assert
             assertAll(
                 () -> assertThat(result).isNotNull(),
-                () -> assertThat(result.getId()).isNotNull(),
-                () -> assertThat(result.getUserId()).isEqualTo(VALID_USER_ID),
-                () -> assertThat(result.getGender()).isEqualTo(VALID_GENDER),
-                () -> assertThat(result.getBirthDate()).isEqualTo(VALID_BIRTH_DATE),
-                () -> assertThat(result.getEmail()).isEqualTo(VALID_EMAIL)
+                () -> assertThat(result.id()).isNotNull(),
+                () -> assertThat(result.userId()).isEqualTo(VALID_USER_ID),
+                () -> assertThat(result.gender()).isEqualTo(VALID_GENDER),
+                () -> assertThat(result.birthDate()).isEqualTo(VALID_BIRTH_DATE),
+                () -> assertThat(result.email()).isEqualTo(VALID_EMAIL)
             );
 
         }
@@ -118,7 +120,7 @@ class UserServiceIntegrationTest {
             String nonExistentUserId = "nonExistentId";
 
             // act
-            User result = userService.getMyInfo(nonExistentUserId);
+            UserInfo result = userApplicationService.getMyInfo(nonExistentUserId);
 
             // assert
             assertThat(result).isNull();

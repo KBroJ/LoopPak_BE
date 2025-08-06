@@ -1,6 +1,8 @@
 package com.loopers.application.order;
 
 import com.loopers.application.points.PointApplicationService;
+import com.loopers.application.users.UserApplicationService;
+import com.loopers.application.users.UserInfo;
 import com.loopers.domain.brand.Brand;
 import com.loopers.domain.brand.BrandService;
 import com.loopers.domain.order.Order;
@@ -11,8 +13,6 @@ import com.loopers.domain.points.Point;
 import com.loopers.domain.product.Product;
 import com.loopers.domain.product.ProductService;
 import com.loopers.domain.product.ProductStatus;
-import com.loopers.domain.users.User;
-import com.loopers.domain.users.UserService;
 import com.loopers.support.error.CoreException;
 import com.loopers.utils.DatabaseCleanUp;
 import org.junit.jupiter.api.*;
@@ -32,7 +32,7 @@ class OrderUsecaseIntegrationTest {
     private OrderFacade orderFacade;
 
     @Autowired
-    private UserService userService;
+    private UserApplicationService userApplicationService;
     @Autowired
     private BrandService brandService;
     @Autowired
@@ -43,25 +43,25 @@ class OrderUsecaseIntegrationTest {
     @Autowired
     private DatabaseCleanUp databaseCleanUp;
 
-    private User testUser;
+    private UserInfo testUser;
     private Product product1, product2;
     private Order savedOrder;
 
     @BeforeEach
     void setUp() {
-        testUser = userService.saveUser("testuser", "MALE", "2000-01-01", "test@test.com");
+        testUser = userApplicationService.saveUser("testuser", "MALE", "2000-01-01", "test@test.com");
 
         Brand brand = brandService.create(Brand.of("테스트브랜드", "", true));
         product1 = productService.create(Product.of(brand.getId(), "상품1", "", 10000, 10, 10, ProductStatus.ACTIVE));
         product2 = productService.create(Product.of(brand.getId(), "상품2", "", 5000, 10, 10, ProductStatus.ACTIVE));
 
-        pointApplicationService.chargePoint(testUser.getUserId(), 100000L);
+        pointApplicationService.chargePoint(testUser.userId(), 100000L);
 
         OrderRequest orderRequest = new OrderRequest(List.of(
                 new OrderItemRequest(product1.getId(), 2),
                 new OrderItemRequest(product2.getId(), 1)
         ));
-        savedOrder = orderFacade.placeOrder(testUser.getId(), orderRequest);
+        savedOrder = orderFacade.placeOrder(testUser.id(), orderRequest);
     }
 
     @AfterEach
@@ -77,7 +77,7 @@ class OrderUsecaseIntegrationTest {
         @Test
         void succeedsAndChangesStateCorrectly_whenPlacingOrder() {
             // arrange
-            long initialPoints = pointApplicationService.getPointByUserId(testUser.getId()).getPoint();
+            long initialPoints = pointApplicationService.getPointByUserId(testUser.id()).getPoint();
             int initialStock = productService.productInfo(product1.getId()).get().getStock();
 
             OrderRequest orderRequest = new OrderRequest(List.of(
@@ -85,13 +85,13 @@ class OrderUsecaseIntegrationTest {
             ));
 
             // act
-            Order newOrder = orderFacade.placeOrder(testUser.getId(), orderRequest);
+            Order newOrder = orderFacade.placeOrder(testUser.id(), orderRequest);
 
             // assert
             Product updatedProduct = productService.productInfo(product1.getId()).get();
             assertThat(updatedProduct.getStock()).isEqualTo(initialStock - 2);
 
-            Point updatedPoint = pointApplicationService.getPointByUserId(testUser.getId());
+            Point updatedPoint = pointApplicationService.getPointByUserId(testUser.id());
             assertThat(updatedPoint.getPoint()).isEqualTo(initialPoints - 20000L);
 
             assertThat(newOrder.getId()).isNotNull();
@@ -102,17 +102,17 @@ class OrderUsecaseIntegrationTest {
         @Test
         void failsAndRollsBack_whenStockIsInsufficient() {
             // arrange
-            long initialPoints = pointApplicationService.getPointByUserId(testUser.getId()).getPoint();
+            long initialPoints = pointApplicationService.getPointByUserId(testUser.id()).getPoint();
             OrderRequest orderRequest = new OrderRequest(List.of(
                     new OrderItemRequest(product1.getId(), 11)
             ));
 
             // act & assert
-            assertThatThrownBy(() -> orderFacade.placeOrder(testUser.getId(), orderRequest))
+            assertThatThrownBy(() -> orderFacade.placeOrder(testUser.id(), orderRequest))
                     .isInstanceOf(CoreException.class)
                     .hasMessageContaining("재고가 부족합니다");
 
-            Point pointAfterFailure = pointApplicationService.getPointByUserId(testUser.getId());
+            Point pointAfterFailure = pointApplicationService.getPointByUserId(testUser.id());
             assertThat(pointAfterFailure.getPoint()).isEqualTo(initialPoints);
         }
 
@@ -120,8 +120,8 @@ class OrderUsecaseIntegrationTest {
         @Test
         void failsAndRollsBack_whenPointsAreInsufficient() {
             // arrange
-            User poorUser = userService.saveUser("poorUser", "F", "2001-01-01", "poor@test.com");
-            pointApplicationService.chargePoint(poorUser.getUserId(), 15000L);
+            UserInfo poorUser = userApplicationService.saveUser("poorUser", "F", "2001-01-01", "poor@test.com");
+            pointApplicationService.chargePoint(poorUser.userId(), 15000L);
             int initialStock = productService.productInfo(product1.getId()).get().getStock();
 
             OrderRequest orderRequest = new OrderRequest(List.of(
@@ -129,7 +129,7 @@ class OrderUsecaseIntegrationTest {
             ));
 
             // act & assert
-            assertThatThrownBy(() -> orderFacade.placeOrder(poorUser.getId(), orderRequest))
+            assertThatThrownBy(() -> orderFacade.placeOrder(poorUser.id(), orderRequest))
                     .isInstanceOf(CoreException.class)
                     .hasMessageContaining("포인트가 부족합니다");
 
@@ -142,7 +142,7 @@ class OrderUsecaseIntegrationTest {
     @Test
     void getMyOrders_returnsCorrectOrderSummary() {
         // act
-        Page<OrderSummaryResponse> resultPage = orderFacade.getMyOrders(testUser.getId(), 0, 10);
+        Page<OrderSummaryResponse> resultPage = orderFacade.getMyOrders(testUser.id(), 0, 10);
 
         // assert
         assertThat(resultPage.getTotalElements()).isEqualTo(1);

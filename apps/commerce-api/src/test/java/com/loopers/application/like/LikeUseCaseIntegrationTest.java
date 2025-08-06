@@ -1,5 +1,7 @@
 package com.loopers.application.like;
 
+import com.loopers.application.users.UserApplicationService;
+import com.loopers.application.users.UserInfo;
 import com.loopers.domain.brand.Brand;
 import com.loopers.domain.brand.BrandService;
 import com.loopers.domain.like.Like;
@@ -8,8 +10,6 @@ import com.loopers.domain.like.LikeType;
 import com.loopers.domain.product.Product;
 import com.loopers.domain.product.ProductService;
 import com.loopers.domain.product.ProductStatus;
-import com.loopers.domain.users.User;
-import com.loopers.domain.users.UserService;
 import com.loopers.utils.DatabaseCleanUp;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +27,7 @@ class LikeUseCaseIntegrationTest {
     @Autowired
     private LikeFacade likeFacade;
     @Autowired
-    private UserService userService;
+    private UserApplicationService userApplicationService;
     @Autowired
     private ProductService productService;
     @Autowired
@@ -37,13 +37,13 @@ class LikeUseCaseIntegrationTest {
     @Autowired
     private DatabaseCleanUp databaseCleanUp;
 
-    private User user;
+    private UserInfo userInfo;
     private Product product1;
     private Long brandAId;
 
     @BeforeEach
     void setUp() {
-        user = userService.saveUser("userid", "MALE", "2025-07-14", "test@test.kr");
+        userInfo = userApplicationService.saveUser("userid", "MALE", "2025-07-14", "test@test.kr");
         Brand brandA = brandService.create(Brand.of("브랜드A", "설명", true));
         brandAId = brandA.getId();
         product1 = productService.create(Product.of(
@@ -62,10 +62,10 @@ class LikeUseCaseIntegrationTest {
         void doLike_whenUserIdTargetIdLikeTypeAreProvided() {
 
             // act
-            likeFacade.likeProduct(user.getId(), product1.getId());
+            likeFacade.likeProduct(userInfo.id(), product1.getId());
 
             // assert
-            Optional<Like> result = likeRepository.findByUserIdAndTargetIdAndType(user.getId(), product1.getId(), LikeType.PRODUCT);
+            Optional<Like> result = likeRepository.findByUserIdAndTargetIdAndType(userInfo.id(), product1.getId(), LikeType.PRODUCT);
             assertThat(result).isPresent();
         }
 
@@ -74,13 +74,13 @@ class LikeUseCaseIntegrationTest {
         void unLike_whenLikeExist() {
 
             // arrange
-            likeFacade.likeProduct(user.getId(), product1.getId());
+            likeFacade.likeProduct(userInfo.id(), product1.getId());
 
             // act
-            likeFacade.unlikeProduct(user.getId(), product1.getId());
+            likeFacade.unlikeProduct(userInfo.id(), product1.getId());
 
             // assert
-            Optional<Like> result = likeRepository.findByUserIdAndTargetIdAndType(user.getId(), product1.getId(), LikeType.PRODUCT);
+            Optional<Like> result = likeRepository.findByUserIdAndTargetIdAndType(userInfo.id(), product1.getId(), LikeType.PRODUCT);
             assertThat(result).isEmpty();
         }
 
@@ -88,13 +88,13 @@ class LikeUseCaseIntegrationTest {
         @DisplayName("이미 좋아요를 누른 상품에 다시 요청해도 중복 저장되지 않는다.")
         void doesNotSaveDuplicate_whenLikeIsAlreadyExists() {
             // arrange.
-            likeFacade.likeProduct(user.getId(), product1.getId());
+            likeFacade.likeProduct(userInfo.id(), product1.getId());
 
             // act
-            likeFacade.likeProduct(user.getId(), product1.getId());
+            likeFacade.likeProduct(userInfo.id(), product1.getId());
 
             // assert
-            List<Like> userLikes = likeRepository.findByUserIdAndType(user.getId(), LikeType.PRODUCT);
+            List<Like> userLikes = likeRepository.findByUserIdAndType(userInfo.id(), LikeType.PRODUCT);
             assertThat(userLikes).hasSize(1);
         }
 
@@ -112,11 +112,11 @@ class LikeUseCaseIntegrationTest {
             Product product2 = productService.create(Product.of(brandAId, "상품명2", "설명", 200, 10, 10, ProductStatus.ACTIVE));
             productService.create(Product.of(brandAId, "좋아요 안한 상품", "설명", 300, 10, 10, ProductStatus.ACTIVE));
 
-            likeFacade.likeProduct(user.getId(), product1.getId());
-            likeFacade.likeProduct(user.getId(), product2.getId());
+            likeFacade.likeProduct(userInfo.id(), product1.getId());
+            likeFacade.likeProduct(userInfo.id(), product2.getId());
 
             // act
-            Page<Product> result = likeFacade.getLikedProducts(user.getId(), 0, 10);
+            Page<Product> result = likeFacade.getLikedProducts(userInfo.id(), 0, 10);
 
             // assert
             assertThat(result.getTotalElements()).isEqualTo(2);
@@ -131,7 +131,7 @@ class LikeUseCaseIntegrationTest {
             // arrange
 
             // act
-            Page<Product> result = likeFacade.getLikedProducts(user.getId(), 0, 10);
+            Page<Product> result = likeFacade.getLikedProducts(userInfo.id(), 0, 10);
 
             // assert
             assertThat(result.getTotalElements()).isEqualTo(0);
