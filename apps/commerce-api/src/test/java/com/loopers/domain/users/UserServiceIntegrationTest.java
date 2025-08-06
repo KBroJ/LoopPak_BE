@@ -55,7 +55,7 @@ class UserServiceIntegrationTest {
             );
 
             // assert
-            verify(userRepository, times(1)).save(any(UserModel.class));
+            verify(userRepository, times(1)).save(any(User.class));
 
         }
 
@@ -96,7 +96,7 @@ class UserServiceIntegrationTest {
             );
 
             // act
-            UserModel result = userService.getMyInfo(VALID_USER_ID);
+            User result = userService.getMyInfo(VALID_USER_ID);
 
             // assert
             assertAll(
@@ -118,7 +118,7 @@ class UserServiceIntegrationTest {
             String nonExistentUserId = "nonExistentId";
 
             // act
-            UserModel result = userService.getMyInfo(nonExistentUserId);
+            User result = userService.getMyInfo(nonExistentUserId);
 
             // assert
             assertThat(result).isNull();

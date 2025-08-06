@@ -8,7 +8,7 @@ import com.loopers.domain.like.LikeType;
 import com.loopers.domain.product.Product;
 import com.loopers.domain.product.ProductService;
 import com.loopers.domain.product.ProductStatus;
-import com.loopers.domain.users.UserModel;
+import com.loopers.domain.users.User;
 import com.loopers.domain.users.UserService;
 import com.loopers.utils.DatabaseCleanUp;
 import org.junit.jupiter.api.*;
@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 class LikeUseCaseIntegrationTest {
@@ -38,7 +37,7 @@ class LikeUseCaseIntegrationTest {
     @Autowired
     private DatabaseCleanUp databaseCleanUp;
 
-    private UserModel user;
+    private User user;
     private Product product1;
     private Long brandAId;
 

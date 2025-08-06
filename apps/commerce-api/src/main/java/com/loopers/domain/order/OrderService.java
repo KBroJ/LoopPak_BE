@@ -1,6 +1,6 @@
 package com.loopers.domain.order;
 
-import com.loopers.domain.points.PointModel;
+import com.loopers.domain.points.Point;
 import com.loopers.domain.product.Product;
 import com.loopers.support.error.CoreException;
 import com.loopers.support.error.ErrorType;
@@ -20,7 +20,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
 
     @Transactional
-    public Order placeOrder(Long userId, PointModel userPoint, List<Product> products, Map<Long, Integer> quantityMap) {
+    public Order placeOrder(Long userId, Point userPoint, List<Product> products, Map<Long, Integer> quantityMap) {
 
         List<OrderItem> orderItems = products.stream()
                 .map(product -> {

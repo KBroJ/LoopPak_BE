@@ -1,17 +1,17 @@
 package com.loopers.application.order;
 
+import com.loopers.application.points.PointApplicationService;
 import com.loopers.domain.brand.Brand;
 import com.loopers.domain.brand.BrandService;
 import com.loopers.domain.order.Order;
 import com.loopers.domain.order.OrderItemRequest;
 import com.loopers.domain.order.OrderRequest;
 import com.loopers.domain.order.OrderStatus;
-import com.loopers.domain.points.PointModel;
-import com.loopers.domain.points.PointService;
+import com.loopers.domain.points.Point;
 import com.loopers.domain.product.Product;
 import com.loopers.domain.product.ProductService;
 import com.loopers.domain.product.ProductStatus;
-import com.loopers.domain.users.UserModel;
+import com.loopers.domain.users.User;
 import com.loopers.domain.users.UserService;
 import com.loopers.support.error.CoreException;
 import com.loopers.utils.DatabaseCleanUp;
@@ -38,12 +38,12 @@ class OrderUsecaseIntegrationTest {
     @Autowired
     private ProductService productService;
     @Autowired
-    private PointService pointService;
+    private PointApplicationService pointApplicationService;
 
     @Autowired
     private DatabaseCleanUp databaseCleanUp;
 
-    private UserModel testUser;
+    private User testUser;
     private Product product1, product2;
     private Order savedOrder;
 
@@ -55,7 +55,7 @@ class OrderUsecaseIntegrationTest {
         product1 = productService.create(Product.of(brand.getId(), "상품1", "", 10000, 10, 10, ProductStatus.ACTIVE));
         product2 = productService.create(Product.of(brand.getId(), "상품2", "", 5000, 10, 10, ProductStatus.ACTIVE));
 
-        pointService.chargePoint(testUser.getUserId(), 100000L);
+        pointApplicationService.chargePoint(testUser.getUserId(), 100000L);
 
         OrderRequest orderRequest = new OrderRequest(List.of(
                 new OrderItemRequest(product1.getId(), 2),
@@ -77,7 +77,7 @@ class OrderUsecaseIntegrationTest {
         @Test
         void succeedsAndChangesStateCorrectly_whenPlacingOrder() {
             // arrange
-            long initialPoints = pointService.getPointByUserId(testUser.getId()).getPoint();
+            long initialPoints = pointApplicationService.getPointByUserId(testUser.getId()).getPoint();
             int initialStock = productService.productInfo(product1.getId()).get().getStock();
 
             OrderRequest orderRequest = new OrderRequest(List.of(
@@ -91,7 +91,7 @@ class OrderUsecaseIntegrationTest {
             Product updatedProduct = productService.productInfo(product1.getId()).get();
             assertThat(updatedProduct.getStock()).isEqualTo(initialStock - 2);
 
-            PointModel updatedPoint = pointService.getPointByUserId(testUser.getId());
+            Point updatedPoint = pointApplicationService.getPointByUserId(testUser.getId());
             assertThat(updatedPoint.getPoint()).isEqualTo(initialPoints - 20000L);
 
             assertThat(newOrder.getId()).isNotNull();
@@ -102,7 +102,7 @@ class OrderUsecaseIntegrationTest {
         @Test
         void failsAndRollsBack_whenStockIsInsufficient() {
             // arrange
-            long initialPoints = pointService.getPointByUserId(testUser.getId()).getPoint();
+            long initialPoints = pointApplicationService.getPointByUserId(testUser.getId()).getPoint();
             OrderRequest orderRequest = new OrderRequest(List.of(
                     new OrderItemRequest(product1.getId(), 11)
             ));
@@ -112,7 +112,7 @@ class OrderUsecaseIntegrationTest {
                     .isInstanceOf(CoreException.class)
                     .hasMessageContaining("재고가 부족합니다");
 
-            PointModel pointAfterFailure = pointService.getPointByUserId(testUser.getId());
+            Point pointAfterFailure = pointApplicationService.getPointByUserId(testUser.getId());
             assertThat(pointAfterFailure.getPoint()).isEqualTo(initialPoints);
         }
 
@@ -120,8 +120,8 @@ class OrderUsecaseIntegrationTest {
         @Test
         void failsAndRollsBack_whenPointsAreInsufficient() {
             // arrange
-            UserModel poorUser = userService.saveUser("poorUser", "F", "2001-01-01", "poor@test.com");
-            pointService.chargePoint(poorUser.getUserId(), 15000L);
+            User poorUser = userService.saveUser("poorUser", "F", "2001-01-01", "poor@test.com");
+            pointApplicationService.chargePoint(poorUser.getUserId(), 15000L);
             int initialStock = productService.productInfo(product1.getId()).get().getStock();
 
             OrderRequest orderRequest = new OrderRequest(List.of(

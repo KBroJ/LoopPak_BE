@@ -1,7 +1,7 @@
 package com.loopers.domain.points;
 
 import com.loopers.domain.BaseEntity;
-import com.loopers.domain.users.UserModel;
+import com.loopers.domain.users.User;
 import com.loopers.support.error.CoreException;
 import com.loopers.support.error.ErrorType;
 import jakarta.persistence.*;
@@ -14,22 +14,22 @@ import lombok.NoArgsConstructor;
 @Getter
 @Table(name = "points")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class PointModel extends BaseEntity {
+public class Point extends BaseEntity {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "users_id", nullable = false)
-    private UserModel userModel;
+    private User user;
     @NotNull
     private Long point;
 
-    public PointModel(UserModel userModel, Long point) {
-        this.userModel = userModel;
+    public Point(User user, Long point) {
+        this.user = user;
         validatePoint(point);
         this.point = point;
     }
 
-    public static PointModel of(UserModel userModel, Long point) {
-        return new PointModel(userModel, point);
+    public static Point of(User user, Long point) {
+        return new Point(user, point);
     }
 
     private void validatePoint(Long point) {

@@ -1,6 +1,6 @@
 package com.loopers.domain.users;
 
-import com.loopers.domain.points.PointModel;
+import com.loopers.domain.points.Point;
 import com.loopers.domain.points.PointRepository;
 import com.loopers.support.error.CoreException;
 import com.loopers.support.error.ErrorType;
@@ -16,23 +16,23 @@ public class UserService {
     private final UserRepository userRepository;
 
     @Transactional
-    public UserModel saveUser(String userId, String gender, String birthDate, String email) {
+    public User saveUser(String userId, String gender, String birthDate, String email) {
 
         if(userRepository.existsByUserId(userId)) {
             throw new CoreException(ErrorType.CONFLICT, "이미 존재하는 로그인 ID입니다.");
         }
 
-        UserModel userModel = UserModel.of(userId, gender, birthDate, email);
-        UserModel savedUser = userRepository.save(userModel);
+        User user = User.of(userId, gender, birthDate, email);
+        User savedUser = userRepository.save(user);
 
-        PointModel pointModel = PointModel.of(savedUser, 0L);
-        pointRepository.save(pointModel);
+        Point point = Point.of(savedUser, 0L);
+        pointRepository.save(point);
 
         return savedUser;
     }
 
     @Transactional(readOnly = true)
-    public UserModel getMyInfo(String userId) {
+    public User getMyInfo(String userId) {
 
         return userRepository.findByUserId(userId).orElse(null);
 

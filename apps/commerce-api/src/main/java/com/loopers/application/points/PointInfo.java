@@ -1,15 +1,15 @@
 package com.loopers.application.points;
 
-import com.loopers.domain.points.PointModel;
+import com.loopers.domain.points.Point;
 
 public record PointInfo (
     String userId, Long point
 ) {
 
-    public static PointInfo from(PointModel pointModel) {
+    public static PointInfo from(Point point) {
         return new PointInfo(
-            pointModel.getUserModel().getUserId(),
-            pointModel.getPoint()
+            point.getUser().getUserId(),
+            point.getPoint()
         );
     }
 

@@ -1,9 +1,9 @@
 package com.loopers.domain.order;
 
-import com.loopers.domain.points.PointModel;
+import com.loopers.domain.points.Point;
 import com.loopers.domain.product.Product;
 import com.loopers.domain.product.ProductStatus;
-import com.loopers.domain.users.UserModel;
+import com.loopers.domain.users.User;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,8 +30,8 @@ class OrderServiceTest {
     @DisplayName("주문 생성 시, 재고와 포인트가 차감되고 주문이 저장된다.")
     void placeOrder_deductsStockAndPoints_andSavesOrder() {
         // given
-        UserModel user = new UserModel("testuser", "MALE", "2000-01-01", "test@test.com");
-        PointModel userPoint = new PointModel(user, 50000L);
+        User user = new User("testuser", "MALE", "2000-01-01", "test@test.com");
+        Point userPoint = new Point(user, 50000L);
         Product product1 = Product.of(1L, "상품1", "", 10000, 10, 10, ProductStatus.ACTIVE);
         int initialStock = product1.getStock();
         long initialPoints = userPoint.getPoint();

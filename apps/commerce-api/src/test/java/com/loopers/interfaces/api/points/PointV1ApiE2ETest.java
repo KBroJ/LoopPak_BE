@@ -1,11 +1,8 @@
 package com.loopers.interfaces.api.points;
 
-import com.loopers.domain.points.PointModel;
-import com.loopers.domain.points.PointService;
-import com.loopers.domain.users.UserModel;
+import com.loopers.application.points.PointApplicationService;
+import com.loopers.domain.users.User;
 import com.loopers.domain.users.UserService;
-import com.loopers.infrastructure.points.PointJpaRepository;
-import com.loopers.infrastructure.users.UserJpaRepository;
 import com.loopers.interfaces.api.ApiResponse;
 import com.loopers.interfaces.api.users.UsersV1Dto;
 import com.loopers.utils.DatabaseCleanUp;
@@ -27,19 +24,19 @@ public class PointV1ApiE2ETest {
     private final TestRestTemplate testRestTemplate;
     private final DatabaseCleanUp databaseCleanUp;
     private final UserService userService;
-    private final PointService pointService;
+    private final PointApplicationService pointApplicationService;
 
     @Autowired
     public PointV1ApiE2ETest(
             TestRestTemplate testRestTemplate,
             DatabaseCleanUp databaseCleanUp,
             UserService userService,
-            PointService pointService
+            PointApplicationService pointApplicationService
     ) {
         this.testRestTemplate = testRestTemplate;
         this.databaseCleanUp = databaseCleanUp;
         this.userService = userService;
-        this.pointService = pointService;
+        this.pointApplicationService = pointApplicationService;
     }
 
     @AfterEach
@@ -56,11 +53,11 @@ public class PointV1ApiE2ETest {
         void returnPointInfo_whenGetPointInfoByUserId() {
 
             // arrange
-            UserModel user = userService.saveUser(
+            User user = userService.saveUser(
                     "testUser", "MALE", "2025-07-15", "test@test.com"
             );
 
-            pointService.chargePoint(user.getUserId(), 100L);
+            pointApplicationService.chargePoint(user.getUserId(), 100L);
 
             String requestUrl = "/api/v1/points";
             var headers = new HttpHeaders();
@@ -104,7 +101,7 @@ public class PointV1ApiE2ETest {
         void returnAllChargedPoints_whenChargePoints() {
 
             // arrange
-            UserModel user = userService.saveUser(
+            User user = userService.saveUser(
                     "testUser", "MALE", "2025-07-15", "test@test.com"
             );
 

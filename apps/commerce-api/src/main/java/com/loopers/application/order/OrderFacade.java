@@ -1,8 +1,8 @@
 package com.loopers.application.order;
 
+import com.loopers.application.points.PointApplicationService;
 import com.loopers.domain.order.*;
-import com.loopers.domain.points.PointModel;
-import com.loopers.domain.points.PointService;
+import com.loopers.domain.points.Point;
 import com.loopers.domain.product.Product;
 import com.loopers.domain.product.ProductService;
 import com.loopers.support.error.CoreException;
@@ -25,7 +25,7 @@ public class OrderFacade {
 
     private final OrderService orderService;
     private final ProductService productService;
-    private final PointService pointService;
+    private final PointApplicationService pointApplicationService;
 
     @Transactional
     public Order placeOrder(Long userId, OrderRequest orderRequest) {
@@ -39,7 +39,7 @@ public class OrderFacade {
             throw new CoreException(ErrorType.NOT_FOUND, "일부 상품 정보를 찾을 수 없습니다.");
         }
 
-        PointModel userPoint = pointService.getPointByUserId(userId);
+        Point userPoint = pointApplicationService.getPointByUserId(userId);
 
         Map<Long, Integer> quantityMap = orderRequest.items().stream()
                 .collect(Collectors.toMap(OrderItemRequest::productId, OrderItemRequest::quantity));

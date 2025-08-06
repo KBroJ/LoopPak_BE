@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-class UserModelTest {
+class UserTest {
 
     private static final String VALID_USER_ID = "validId";
     private static final String INVALID_USER_ID = "input_Invalid_userId";
@@ -22,7 +22,7 @@ class UserModelTest {
 
     @DisplayName("UserModel|User 객체 생성 단위 테스트")
     @Nested
-    class UserModelCreate {
+    class UserCreate {
 
         @Test
         @DisplayName("ID가 영문 및 숫자로 10자 이내가 아니면 User 객체 생성에 실패한다")
@@ -33,7 +33,7 @@ class UserModelTest {
 
             // act
             CoreException result = assertThrows(CoreException.class, () -> {
-                UserModel.of(userId, VALID_GENDER, VALID_BIRTH_DATE, VALID_EMAIL);
+                User.of(userId, VALID_GENDER, VALID_BIRTH_DATE, VALID_EMAIL);
             });
 
             // assert
@@ -50,7 +50,7 @@ class UserModelTest {
 
             // act
             CoreException result = assertThrows(CoreException.class, () -> {
-                UserModel.of(VALID_USER_ID, VALID_GENDER, VALID_BIRTH_DATE, email);
+                User.of(VALID_USER_ID, VALID_GENDER, VALID_BIRTH_DATE, email);
             });
 
             // assert
@@ -67,7 +67,7 @@ class UserModelTest {
 
             // act
             CoreException result = assertThrows(CoreException.class, () -> {
-                UserModel.of(VALID_USER_ID, VALID_GENDER, birthDate, VALID_EMAIL);
+                User.of(VALID_USER_ID, VALID_GENDER, birthDate, VALID_EMAIL);
             });
 
             // assert

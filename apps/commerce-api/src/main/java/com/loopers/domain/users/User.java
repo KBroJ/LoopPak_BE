@@ -15,7 +15,7 @@ import java.time.format.DateTimeParseException;
 @Entity
 @Getter
 @Table(name = "users")
-public class UserModel extends BaseEntity {
+public class User extends BaseEntity {
 
     @NotNull
     @Column(name = "user_id")
@@ -27,9 +27,9 @@ public class UserModel extends BaseEntity {
     @NotNull
     private String email;
 
-    protected UserModel() {}
+    protected User() {}
 
-    public UserModel(String userId, String gender, String birthDateStr, String email) {
+    public User(String userId, String gender, String birthDateStr, String email) {
 
         this.userId = validateUserId(userId);
         this.gender = validateGender(gender);
@@ -82,8 +82,8 @@ public class UserModel extends BaseEntity {
         return email;
     }
 
-    public static UserModel of(String userId, String gender, String birthDateStr,String email) {
-        return new UserModel(userId, gender, birthDateStr, email);
+    public static User of(String userId, String gender, String birthDateStr, String email) {
+        return new User(userId, gender, birthDateStr, email);
     }
 
 }
