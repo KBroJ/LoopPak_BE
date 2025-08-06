@@ -1,7 +1,7 @@
-package com.loopers.domain.users;
+package com.loopers.application.users;
 
-import com.loopers.application.users.UserApplicationService;
-import com.loopers.application.users.UserInfo;
+import com.loopers.domain.users.User;
+import com.loopers.domain.users.UserRepository;
 import com.loopers.support.error.CoreException;
 import com.loopers.support.error.ErrorType;
 import com.loopers.utils.DatabaseCleanUp;
@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
-class UserServiceIntegrationTest {
+class UserApplicationServiceTest {
 
     @Autowired
     private UserApplicationService userApplicationService;
@@ -112,18 +112,20 @@ class UserServiceIntegrationTest {
 
         }
 
-        @DisplayName("해당 ID 의 회원이 존재하지 않을 경우, null 이 반환된다.")
+        @DisplayName("해당 ID 의 회원이 존재하지 않을 경우, NOT_FOUND 예외처리가 반환된다.")
         @Test
-        void returnNull_whenUserIdNotExists() {
+        void returnNotFoundError_whenUserIdNotExists() {
 
             // arrange
             String nonExistentUserId = "nonExistentId";
 
             // act
-            UserInfo result = userApplicationService.getMyInfo(nonExistentUserId);
+            CoreException result = assertThrows(CoreException.class, () -> {
+                UserInfo userInfo = userApplicationService.getMyInfo(nonExistentUserId);
+            });
 
             // assert
-            assertThat(result).isNull();
+            assertThat(result.getErrorType()).isEqualTo(ErrorType.NOT_FOUND);
 
         }
 

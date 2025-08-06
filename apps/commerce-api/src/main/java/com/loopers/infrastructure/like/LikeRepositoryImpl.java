@@ -5,6 +5,8 @@ import com.loopers.domain.like.LikeCountDto;
 import com.loopers.domain.like.LikeRepository;
 import com.loopers.domain.like.LikeType;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -39,6 +41,17 @@ public class LikeRepositoryImpl implements LikeRepository {
     @Override
     public List<LikeCountDto> countByTargetIdIn(List<Long> targetIds, LikeType type) {
         return likeJpaRepository.countByTargetIdIn(targetIds, type);
+    }
+
+    @Override
+    public Page<Long> findProductIdsOrderByLikesDesc(Long brandId, Pageable idPageable) {
+        return likeJpaRepository.findProductIdsOrderByLikesDesc(brandId, idPageable);
+    }
+
+    @Override
+    public long getLikeCount(Long targetId) {
+        List<LikeCountDto> counts = likeJpaRepository.countByTargetIdIn(List.of(targetId), LikeType.PRODUCT);
+        return counts.isEmpty() ? 0L : counts.get(0).count();
     }
 
 

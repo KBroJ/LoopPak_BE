@@ -22,10 +22,10 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
-class LikeUseCaseIntegrationTest {
+class LikeApplicationServiceTest {
 
     @Autowired
-    private LikeFacade likeFacade;
+    private LikeApplicationService likeApplicationService;
     @Autowired
     private UserApplicationService userApplicationService;
     @Autowired
@@ -62,7 +62,7 @@ class LikeUseCaseIntegrationTest {
         void doLike_whenUserIdTargetIdLikeTypeAreProvided() {
 
             // act
-            likeFacade.likeProduct(userInfo.id(), product1.getId());
+            likeApplicationService.like(userInfo.id(), product1.getId(), LikeType.PRODUCT);
 
             // assert
             Optional<Like> result = likeRepository.findByUserIdAndTargetIdAndType(userInfo.id(), product1.getId(), LikeType.PRODUCT);
@@ -74,10 +74,10 @@ class LikeUseCaseIntegrationTest {
         void unLike_whenLikeExist() {
 
             // arrange
-            likeFacade.likeProduct(userInfo.id(), product1.getId());
+            likeApplicationService.like(userInfo.id(), product1.getId(), LikeType.PRODUCT);
 
             // act
-            likeFacade.unlikeProduct(userInfo.id(), product1.getId());
+            likeApplicationService.unlike(userInfo.id(), product1.getId(), LikeType.PRODUCT);
 
             // assert
             Optional<Like> result = likeRepository.findByUserIdAndTargetIdAndType(userInfo.id(), product1.getId(), LikeType.PRODUCT);
@@ -88,10 +88,10 @@ class LikeUseCaseIntegrationTest {
         @DisplayName("이미 좋아요를 누른 상품에 다시 요청해도 중복 저장되지 않는다.")
         void doesNotSaveDuplicate_whenLikeIsAlreadyExists() {
             // arrange.
-            likeFacade.likeProduct(userInfo.id(), product1.getId());
+            likeApplicationService.like(userInfo.id(), product1.getId(), LikeType.PRODUCT);
 
             // act
-            likeFacade.likeProduct(userInfo.id(), product1.getId());
+            likeApplicationService.like(userInfo.id(), product1.getId(), LikeType.PRODUCT);
 
             // assert
             List<Like> userLikes = likeRepository.findByUserIdAndType(userInfo.id(), LikeType.PRODUCT);
@@ -112,11 +112,11 @@ class LikeUseCaseIntegrationTest {
             Product product2 = productService.create(Product.of(brandAId, "상품명2", "설명", 200, 10, 10, ProductStatus.ACTIVE));
             productService.create(Product.of(brandAId, "좋아요 안한 상품", "설명", 300, 10, 10, ProductStatus.ACTIVE));
 
-            likeFacade.likeProduct(userInfo.id(), product1.getId());
-            likeFacade.likeProduct(userInfo.id(), product2.getId());
+            likeApplicationService.like(userInfo.id(), product1.getId(), LikeType.PRODUCT);
+            likeApplicationService.like(userInfo.id(), product2.getId(), LikeType.PRODUCT);
 
             // act
-            Page<Product> result = likeFacade.getLikedProducts(userInfo.id(), 0, 10);
+            Page<Product> result = likeApplicationService.getLikedProducts(userInfo.id(), LikeType.PRODUCT,0, 10);
 
             // assert
             assertThat(result.getTotalElements()).isEqualTo(2);
@@ -131,7 +131,7 @@ class LikeUseCaseIntegrationTest {
             // arrange
 
             // act
-            Page<Product> result = likeFacade.getLikedProducts(userInfo.id(), 0, 10);
+            Page<Product> result = likeApplicationService.getLikedProducts(userInfo.id(), LikeType.PRODUCT, 0, 10);
 
             // assert
             assertThat(result.getTotalElements()).isEqualTo(0);
