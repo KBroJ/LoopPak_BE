@@ -35,7 +35,10 @@ public class OrderApplicationService {
 
         // === 1. 데이터 조회 ===
         List<Long> productIds = orderRequest.items().stream().map(OrderItemRequest::productId).toList();
-        List<Product> products = productRepository.findAllById(productIds);
+        List<Product> products =
+//                productRepository.findAllById(productIds);
+                productRepository.findAllByIdWithLock(productIds);
+
 //        Point userPoint = pointRepository.findByUserId(userId)
         Point userPoint = pointRepository.findByUserIdWithLock(userId)
                 .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "사용자 포인트 정보를 찾을 수 없습니다."));

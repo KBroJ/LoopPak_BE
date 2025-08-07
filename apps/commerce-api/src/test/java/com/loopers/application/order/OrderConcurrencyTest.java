@@ -17,6 +17,8 @@ import com.loopers.domain.order.OrderItemRequest;
 import com.loopers.domain.order.OrderRequest;
 import com.loopers.domain.points.Point;
 import com.loopers.domain.points.PointRepository;
+import com.loopers.domain.product.Product;
+import com.loopers.domain.product.ProductRepository;
 import com.loopers.domain.product.ProductStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,6 +27,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageRequest;
 
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -53,6 +56,8 @@ class OrderConcurrencyTest {
     private UserCouponRepository userCouponRepository;
     @Autowired
     private PointRepository pointRepository;
+    @Autowired
+    private ProductRepository productRepository;
 
     @Test
     @DisplayName("비관적 락: 동일한 쿠폰으로 동시에 여러 주문을 요청하면, 단 하나의 주문만 성공한다.")
@@ -146,6 +151,50 @@ class OrderConcurrencyTest {
         long expectedPoints = initialPoints - (product.price() * threadCount); // 50000 - (1000 * 10) = 40000
 
         assertThat(finalPoint.getPoint()).isEqualTo(expectedPoints);
+    }
+
+    @Test
+    @DisplayName("비관적 락: 동일 상품에 대해 동시에 여러 주문이 발생해도, 재고가 정확하게 차감된다.")
+    void pessimisticLock_deductsStockCorrectly_forSameProduct() throws InterruptedException {
+        // arrange
+        int initialStock = 100;
+        BrandInfo brand = brandAppService.create("브랜드", "설명", true);
+        ProductResponse product = productAppService.create(brand.id(), "재고테스트상품", "", 1000, initialStock, 10, ProductStatus.ACTIVE);
+
+        int threadCount = 10;
+        List<UserInfo> users = new ArrayList<>();
+        for (int i = 0; i < threadCount; i++) {
+            UserInfo user = userAppService.saveUser("stockUser" + i, "M", "2000-01-01", "s-user" + i + "@test.com");
+            pointAppService.chargePoint(user.userId(), 10000L);
+            users.add(user);
+        }
+
+        ExecutorService executorService = Executors.newFixedThreadPool(10);
+        CountDownLatch latch = new CountDownLatch(threadCount);
+
+        OrderRequest orderRequest = new OrderRequest(
+                List.of(new OrderItemRequest(product.productId(), 1)),
+                null
+        );
+
+        // act
+        for (int i = 0; i < threadCount; i++) {
+            final UserInfo user = users.get(i);
+            executorService.submit(() -> {
+                try {
+                    orderAppService.placeOrder(user.id(), orderRequest);
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+        latch.await();
+
+        // assert
+        Product finalProduct = productRepository.productInfo(product.productId()).orElseThrow();
+        int expectedStock = initialStock - threadCount; // 100 - 10 = 90
+
+        assertThat(finalProduct.getStock()).isEqualTo(expectedStock);
     }
 
 }
