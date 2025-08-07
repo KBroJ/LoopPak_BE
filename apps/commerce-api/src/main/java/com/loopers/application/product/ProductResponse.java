@@ -1,17 +1,31 @@
 package com.loopers.application.product;
 
 import com.loopers.domain.product.Product;
-import lombok.Getter;
+import com.loopers.domain.product.ProductStatus;
 
-@Getter
-public class ProductResponse {
+public record ProductResponse(
+        Long productId,
+        Long brandId,
+        String name,
+        String description,
+        long price,
+        int stock,
+        ProductStatus productStatus,
+        long likeCount
 
-    private final Product product;
-    private final long likeCount;
+) {
 
-    public ProductResponse(Product product, long likeCount) {
-        this.product = product;
-        this.likeCount = likeCount;
+    public static ProductResponse from(Product product, long likeCount) {
+        return new ProductResponse(
+                product.getId(),
+                product.getBrandId(),
+                product.getName(),
+                product.getDescription(),
+                product.getPrice(),
+                product.getStock(),
+                product.getStatus(),
+                likeCount
+        );
     }
 
 }

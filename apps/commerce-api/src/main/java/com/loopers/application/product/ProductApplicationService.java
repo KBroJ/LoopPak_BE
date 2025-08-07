@@ -33,7 +33,7 @@ public class ProductApplicationService {
         Product product = Product.of(brandId, name, description, price, stock, maxOrderQuantity, status);
         Product savedProduct = productRepository.save(product);
         // '좋아요'는 아직 없으므로 0으로 DTO 생성
-        return new ProductResponse(savedProduct, 0L);
+        return ProductResponse.from(savedProduct, 0L);
     }
 
     @Transactional(readOnly = true)
@@ -93,7 +93,7 @@ public class ProductApplicationService {
         Map<Long, Long> likeCounts = likeCountDtos.stream()
                 .collect(Collectors.toMap(LikeCountDto::targetId, LikeCountDto::count));
 
-        return productPage.map(product -> new ProductResponse(product, likeCounts.getOrDefault(product.getId(), 0L)));
+        return productPage.map(product -> ProductResponse.from(product, likeCounts.getOrDefault(product.getId(), 0L)));
     }
 
 
@@ -104,7 +104,7 @@ public class ProductApplicationService {
 
         long likeCount = likeRepository.getLikeCount(productId);
 
-        return new ProductResponse(product, likeCount);
+        return ProductResponse.from(product, likeCount);
     }
 
 }

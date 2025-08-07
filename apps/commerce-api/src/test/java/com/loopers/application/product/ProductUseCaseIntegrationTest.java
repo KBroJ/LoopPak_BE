@@ -58,9 +58,9 @@ class ProductUseCaseIntegrationTest {
             // assert
             assertAll(
                     () -> assertThat(result).isNotNull(),
-                    () -> assertThat(result.getProduct().getBrandId()).isEqualTo(brandAId),
-                    () -> assertThat(result.getProduct().getId()).isNotNull(),
-                    () -> assertThat(result.getProduct().getName()).isEqualTo("상품명")
+                    () -> assertThat(result.brandId()).isEqualTo(brandAId),
+                    () -> assertThat(result.productId()).isNotNull(),
+                    () -> assertThat(result.name()).isEqualTo("상품명")
             );
         }
     }
@@ -77,9 +77,9 @@ class ProductUseCaseIntegrationTest {
             ProductResponse p2 = productAppService.create(brandBId, "활성상품2", "설명", 200, 10, 10, ProductStatus.ACTIVE);
             productAppService.create(brandAId, "비활성상품", "설명", 300, 10, 10, ProductStatus.INACTIVE);
 
-            likeAppService.like(1L, p1.getProduct().getId(), LikeType.PRODUCT);
-            likeAppService.like(2L, p1.getProduct().getId(), LikeType.PRODUCT);
-            likeAppService.like(1L, p2.getProduct().getId(), LikeType.PRODUCT);
+            likeAppService.like(1L, p1.productId(), LikeType.PRODUCT);
+            likeAppService.like(2L, p1.productId(), LikeType.PRODUCT);
+            likeAppService.like(1L, p2.productId(), LikeType.PRODUCT);
 
             // act
             Page<ProductResponse> result = productAppService.searchProducts(null, "latest", 0, 10);
@@ -88,10 +88,10 @@ class ProductUseCaseIntegrationTest {
             // assert
             assertAll(
                     () -> assertThat(result.getTotalElements()).isEqualTo(2),
-                    () -> assertThat(content.get(0).getProduct().getId()).isEqualTo(p2.getProduct().getId()),
-                    () -> assertThat(content.get(0).getLikeCount()).isEqualTo(1),
-                    () -> assertThat(content.get(1).getProduct().getId()).isEqualTo(p1.getProduct().getId()),
-                    () -> assertThat(content.get(1).getLikeCount()).isEqualTo(2)
+                    () -> assertThat(content.get(0).productId()).isEqualTo(p2.productId()),
+                    () -> assertThat(content.get(0).likeCount()).isEqualTo(1),
+                    () -> assertThat(content.get(1).productId()).isEqualTo(p1.productId()),
+                    () -> assertThat(content.get(1).likeCount()).isEqualTo(2)
             );
         }
 
@@ -108,7 +108,7 @@ class ProductUseCaseIntegrationTest {
 
             // assert
             assertThat(resultPage.getContent())
-                    .isSortedAccordingTo(Comparator.comparing(response -> response.getProduct().getPrice()));
+                    .isSortedAccordingTo(Comparator.comparing(response -> response.price()));
         }
 
         @DisplayName("성공: 좋아요 많은 순으로 정렬 시 상품이 좋아요 수 순으로 반환된다.")
@@ -119,21 +119,21 @@ class ProductUseCaseIntegrationTest {
             ProductResponse p2 = productAppService.create(brandAId, "좋아요3개", "설명", 100, 10, 10, ProductStatus.ACTIVE);
             ProductResponse p3 = productAppService.create(brandAId, "좋아요2개", "설명", 100, 10, 10, ProductStatus.ACTIVE);
 
-            likeAppService.like(1L, p2.getProduct().getId(), LikeType.PRODUCT);
-            likeAppService.like(2L, p2.getProduct().getId(), LikeType.PRODUCT);
-            likeAppService.like(3L, p2.getProduct().getId(), LikeType.PRODUCT);
-            likeAppService.like(1L, p3.getProduct().getId(), LikeType.PRODUCT);
-            likeAppService.like(2L, p3.getProduct().getId(), LikeType.PRODUCT);
-            likeAppService.like(1L, p1.getProduct().getId(), LikeType.PRODUCT);
+            likeAppService.like(1L, p2.productId(), LikeType.PRODUCT);
+            likeAppService.like(2L, p2.productId(), LikeType.PRODUCT);
+            likeAppService.like(3L, p2.productId(), LikeType.PRODUCT);
+            likeAppService.like(1L, p3.productId(), LikeType.PRODUCT);
+            likeAppService.like(2L, p3.productId(), LikeType.PRODUCT);
+            likeAppService.like(1L, p1.productId(), LikeType.PRODUCT);
 
             // act
             Page<ProductResponse> result = productAppService.searchProducts(null, "likes_desc", 0, 10);
             List<ProductResponse> content = result.getContent();
 
             // assert
-            assertThat(content.get(0).getProduct().getId()).isEqualTo(p2.getProduct().getId());
-            assertThat(content.get(1).getProduct().getId()).isEqualTo(p3.getProduct().getId());
-            assertThat(content.get(2).getProduct().getId()).isEqualTo(p1.getProduct().getId());
+            assertThat(content.get(0).productId()).isEqualTo(p2.productId());
+            assertThat(content.get(1).productId()).isEqualTo(p3.productId());
+            assertThat(content.get(2).productId()).isEqualTo(p1.productId());
         }
     }
 
@@ -145,17 +145,17 @@ class ProductUseCaseIntegrationTest {
         void returnProductInfo_whenFindByProductId() {
             // arrange
             ProductResponse created = productAppService.create(brandAId, "테스트상품", "설명", 200, 10, 10, ProductStatus.ACTIVE);
-            likeAppService.like(1L, created.getProduct().getId(), LikeType.PRODUCT);
-            likeAppService.like(2L, created.getProduct().getId(), LikeType.PRODUCT);
+            likeAppService.like(1L, created.productId(), LikeType.PRODUCT);
+            likeAppService.like(2L, created.productId(), LikeType.PRODUCT);
 
             // act
-            ProductResponse result = productAppService.getProductDetail(created.getProduct().getId());
+            ProductResponse result = productAppService.getProductDetail(created.productId());
 
             // assert
             assertAll(
                     () -> assertThat(result).isNotNull(),
-                    () -> assertThat(result.getProduct().getId()).isEqualTo(created.getProduct().getId()),
-                    () -> assertThat(result.getLikeCount()).isEqualTo(2)
+                    () -> assertThat(result.productId()).isEqualTo(created.productId()),
+                    () -> assertThat(result.likeCount()).isEqualTo(2)
             );
         }
     }
