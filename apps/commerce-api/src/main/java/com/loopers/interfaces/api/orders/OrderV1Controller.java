@@ -29,7 +29,7 @@ public class OrderV1Controller implements OrderV1ApiSpec {
         List<OrderItemRequest> itemRequests = request.items().stream()
                 .map(item -> new OrderItemRequest(item.productId(), item.quantity()))
                 .toList();
-        OrderRequest orderRequest = new OrderRequest(itemRequests);
+        OrderRequest orderRequest = new OrderRequest(itemRequests, request.couponId());
 
         Order newOrder = orderAppService.placeOrder(userId, orderRequest);
 

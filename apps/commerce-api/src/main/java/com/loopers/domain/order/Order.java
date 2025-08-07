@@ -25,14 +25,18 @@ public class Order extends BaseEntity {
     @Column(nullable = false)
     private OrderStatus status;
 
-    private Order(Long userId, List<OrderItem> orderItems) {
+    @Column(nullable = false)
+    private long discountAmount = 0L;
+
+    private Order(Long userId, List<OrderItem> orderItems, long discountAmount) {
         this.userId = userId;
         this.status = OrderStatus.PENDING;
+        this.discountAmount = discountAmount;
         orderItems.forEach(this::addOrderItem);
     }
 
-    public static Order of(Long userId, List<OrderItem> orderItems) {
-        return new Order(userId, orderItems);
+    public static Order of(Long userId, List<OrderItem> orderItems, long discountAmount) {
+        return new Order(userId, orderItems, discountAmount);
     }
 
     private void addOrderItem(OrderItem orderItem) {
@@ -44,6 +48,14 @@ public class Order extends BaseEntity {
         return orderItems.stream()
                 .mapToLong(OrderItem::getTotalPrice)
                 .sum();
+    }
+
+    // 총 결제 금액 계산 시 할인 금액 차감
+    public long getFinalPaymentPrice() {
+        long originalTotalPrice = orderItems.stream()
+                .mapToLong(OrderItem::getTotalPrice)
+                .sum();
+        return originalTotalPrice - discountAmount;
     }
 
 }

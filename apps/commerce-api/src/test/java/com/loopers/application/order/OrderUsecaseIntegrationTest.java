@@ -60,7 +60,7 @@ class OrderUsecaseIntegrationTest {
         OrderRequest orderRequest = new OrderRequest(List.of(
                 new OrderItemRequest(product1.getId(), 2),
                 new OrderItemRequest(product2.getId(), 1)
-        ));
+        ), null);
         savedOrder = orderAppService.placeOrder(testUser.id(), orderRequest);
     }
 
@@ -82,7 +82,7 @@ class OrderUsecaseIntegrationTest {
 
             OrderRequest orderRequest = new OrderRequest(List.of(
                     new OrderItemRequest(product1.getId(), 2)
-            ));
+            ), null);
 
             // act
             Order newOrder = orderAppService.placeOrder(testUser.id(), orderRequest);
@@ -105,7 +105,7 @@ class OrderUsecaseIntegrationTest {
             long initialPoints = pointAppService.getPointByUserId(testUser.id()).getPoint();
             OrderRequest orderRequest = new OrderRequest(List.of(
                     new OrderItemRequest(product1.getId(), 11)
-            ));
+            ), null);
 
             // act & assert
             assertThatThrownBy(() -> orderAppService.placeOrder(testUser.id(), orderRequest))
@@ -126,7 +126,7 @@ class OrderUsecaseIntegrationTest {
 
             OrderRequest orderRequest = new OrderRequest(List.of(
                     new OrderItemRequest(product1.getId(), 2)
-            ));
+            ), null);
 
             // act & assert
             assertThatThrownBy(() -> orderAppService.placeOrder(poorUser.id(), orderRequest))
