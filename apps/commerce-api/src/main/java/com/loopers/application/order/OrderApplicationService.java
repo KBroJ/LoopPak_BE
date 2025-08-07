@@ -61,8 +61,10 @@ public class OrderApplicationService {
         // === 3. 쿠폰 로직 처리 ===
         long discountAmount = 0L;
         if (orderRequest.couponId() != null) {
+
             // 3-1. 사용자가 보유한 유효한 쿠폰인지 확인
-            UserCoupon userCoupon = userCouponRepository.findByIdAndUserId(orderRequest.couponId(), userId)
+//            UserCoupon userCoupon = userCouponRepository.findByIdAndUserId(orderRequest.couponId(), userId)
+            UserCoupon userCoupon = userCouponRepository.findByIdAndUserIdWithLock(orderRequest.couponId(), userId)
                     .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "사용할 수 없는 쿠폰입니다."));
 
             // 3-2. 쿠폰 정책(템플릿) 정보 조회
@@ -75,6 +77,7 @@ public class OrderApplicationService {
 
             // 3-4. 쿠폰 사용 처리 (상태 변경)
             userCoupon.use();
+
         }
 
         // === 4. 최종 결제 금액 계산 및 포인트 사용 ===

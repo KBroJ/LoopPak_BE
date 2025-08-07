@@ -16,6 +16,9 @@ public interface UserCouponRepository {
     // 주문 시 특정 쿠폰의 유효성을 검증하기 위해 사용
     Optional<UserCoupon> findByIdAndUserId(Long id, Long userId);
 
+    // [비관적락]주문 시 특정 쿠폰의 유효성을 검증하기 위해 사용
+    Optional<UserCoupon> findByIdAndUserIdWithLock(Long id, Long userId);
+
     // 사용자가 보유한 쿠폰 목록을 조회하기 위해 사용
     Page<UserCoupon> findByUserIdAndStatus(Long userId, UserCouponStatus status, Pageable pageable);
 

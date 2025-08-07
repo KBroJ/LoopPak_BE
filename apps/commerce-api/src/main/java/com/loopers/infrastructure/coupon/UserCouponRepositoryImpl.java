@@ -34,6 +34,11 @@ public class UserCouponRepositoryImpl implements UserCouponRepository {
     }
 
     @Override
+    public Optional<UserCoupon> findByIdAndUserIdWithLock(Long id, Long userId) {
+        return userCouponJpaRepository.findByIdAndUserIdWithLock(id, userId);
+    }
+
+    @Override
     public Page<UserCoupon> findByUserIdAndStatus(Long userId, UserCouponStatus status, Pageable pageable) {
         return userCouponJpaRepository.findByUserIdAndStatus(userId, status, pageable);
     }
