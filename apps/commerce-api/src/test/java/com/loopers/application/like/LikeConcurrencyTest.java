@@ -122,6 +122,8 @@ class LikeConcurrencyTest {
         latch.await();
 
         // assert
+        System.out.println("successCount.get() : " + successCount.get());
+        System.out.println("failureCount.get() : " + failureCount.get());
         // 단 하나의 스레드만 성공적으로 삭제를 완료해야 합니다.
         assertThat(successCount.get()).isEqualTo(1);
         // 나머지 9개의 스레드는 낙관적 락에 의해 실패(충돌)해야 합니다.

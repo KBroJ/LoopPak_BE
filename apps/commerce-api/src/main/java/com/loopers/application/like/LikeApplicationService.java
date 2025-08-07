@@ -53,8 +53,9 @@ public class LikeApplicationService {
     @Transactional
     public void unlike(Long userId, Long productId, LikeType likeType) {
         try {
-            likeRepository.findByUserIdAndTargetIdAndType(userId, productId, likeType)
-                    .ifPresent(likeRepository::delete);
+//            likeRepository.findByUserIdAndTargetIdAndType(userId, productId, likeType)
+//                    .ifPresent(likeRepository::delete);
+            likeRepository.deleteByUserIdAndTargetIdAndType(userId, productId, likeType);
         } catch (ObjectOptimisticLockingFailureException e) {
             System.out.println("'좋아요 취소' 중 낙관적 락 충돌 발생 (정상 처리)");
         }
