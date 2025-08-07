@@ -1,0 +1,60 @@
+package com.loopers.domain.coupon;
+
+import com.loopers.domain.BaseEntity;
+import com.loopers.support.error.CoreException;
+import com.loopers.support.error.ErrorType;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import java.time.ZonedDateTime;
+
+@Entity
+@Getter
+@Table(name = "user_coupons")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class UserCoupon extends BaseEntity {
+
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
+    @Column(name = "coupon_id", nullable = false)
+    private Long couponId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserCouponStatus status;
+
+    private ZonedDateTime usedAt;
+
+    @Column(nullable = false)
+    private ZonedDateTime expiresAt;
+
+    private UserCoupon(Long userId, Long couponId, ZonedDateTime expiresAt) {
+        this.userId = userId;
+        this.couponId = couponId;
+        this.status = UserCouponStatus.AVAILABLE;
+        this.expiresAt = expiresAt;
+    }
+
+    public static UserCoupon of(Long userId, Long couponId, ZonedDateTime expiresAt) {
+        return new UserCoupon(userId, couponId, expiresAt);
+    }
+
+    /**
+     * 쿠폰 사용 처리
+     */
+    public void use() {
+        if (this.status != UserCouponStatus.AVAILABLE) {
+            throw new CoreException(ErrorType.BAD_REQUEST, "이미 사용했거나 만료된 쿠폰입니다.");
+        }
+        if (ZonedDateTime.now().isAfter(this.expiresAt)) {
+            this.status = UserCouponStatus.EXPIRED; // 혹시 모를 스케줄러 오류에 대비한 방어 코드
+            throw new CoreException(ErrorType.BAD_REQUEST, "기간이 만료된 쿠폰입니다.");
+        }
+        this.status = UserCouponStatus.USED;
+        this.usedAt = ZonedDateTime.now();
+    }
+
+}
