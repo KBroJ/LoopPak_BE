@@ -15,6 +15,8 @@ import com.loopers.domain.coupon.UserCouponRepository;
 import com.loopers.domain.coupon.UserCouponStatus;
 import com.loopers.domain.order.OrderItemRequest;
 import com.loopers.domain.order.OrderRequest;
+import com.loopers.domain.points.Point;
+import com.loopers.domain.points.PointRepository;
 import com.loopers.domain.product.ProductStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -49,6 +51,8 @@ class OrderConcurrencyTest {
 
     @Autowired
     private UserCouponRepository userCouponRepository;
+    @Autowired
+    private PointRepository pointRepository;
 
     @Test
     @DisplayName("비관적 락: 동일한 쿠폰으로 동시에 여러 주문을 요청하면, 단 하나의 주문만 성공한다.")
@@ -98,6 +102,50 @@ class OrderConcurrencyTest {
 
         UserCoupon finalCoupon = userCouponRepository.findById(userCoupon.getId()).orElseThrow();
         assertThat(finalCoupon.getStatus()).as("쿠폰 상태가 'USED'여야 함").isEqualTo(UserCouponStatus.USED);
+    }
+
+
+    @Test
+    @DisplayName("비관적 락: 동일 유저가 동시에 여러 주문을 요청해도, 포인트가 정상적으로 차감된다.")
+    void pessimisticLock_deductsPointsCorrectly_forSameUser() throws InterruptedException {
+        // arrange
+        // 1. 테스트용 사용자, 상품, 포인트를 생성합니다.
+        UserInfo user = userAppService.saveUser("pointUser", "F", "2000-01-01", "p-user@test.com");
+        BrandInfo brand = brandAppService.create("브랜드", "설명", true);
+        ProductResponse product = productAppService.create(brand.id(), "상품", "", 1000, 100, 10, ProductStatus.ACTIVE);
+        long initialPoints = 50000L;
+        pointAppService.chargePoint(user.userId(), initialPoints);
+
+        // 2. 동시성 테스트를 준비합니다. 10개의 스레드가 각각 1000원짜리 상품 1개를 주문합니다.
+        int threadCount = 10;
+        ExecutorService executorService = Executors.newFixedThreadPool(10);
+        CountDownLatch latch = new CountDownLatch(threadCount);
+
+        OrderRequest orderRequest = new OrderRequest(
+                List.of(new OrderItemRequest(product.productId(), 1)),
+                null // 쿠폰 미사용
+        );
+
+        // act
+        for (int i = 0; i < threadCount; i++) {
+            executorService.submit(() -> {
+                try {
+                    orderAppService.placeOrder(user.id(), orderRequest);
+                } catch (Exception e) {
+                    System.out.println("주문 실패 (포인트 부족 등): " + e.getMessage());
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+        latch.await();
+
+        // assert
+        // 3. 최종 포인트를 검증합니다.
+        Point finalPoint = pointRepository.findByUserId(user.id()).orElseThrow();
+        long expectedPoints = initialPoints - (product.price() * threadCount); // 50000 - (1000 * 10) = 40000
+
+        assertThat(finalPoint.getPoint()).isEqualTo(expectedPoints);
     }
 
 }
