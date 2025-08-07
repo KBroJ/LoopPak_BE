@@ -20,4 +20,6 @@ public interface LikeRepository {
     Page<Long> findProductIdsOrderByLikesDesc(Long brandId, Pageable idPageable);
 
     long getLikeCount(Long targetId);
+
+    void deleteByUserIdAndTargetIdAndType(Long userId, Long targetId, LikeType likeType);
 }

@@ -7,10 +7,12 @@ import com.loopers.domain.like.LikeType;
 import com.loopers.domain.product.Product;
 import com.loopers.domain.product.ProductRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,11 +34,16 @@ public class LikeApplicationService {
      */
     @Transactional
     public void like(Long userId, Long productId, LikeType likeType) {
-        // 이미 좋아요를 눌렀는지 확인하는 비즈니스 로직
-        Optional<Like> exsist = likeRepository.findByUserIdAndTargetIdAndType(userId, productId, likeType);
+        try {
 
-        if(exsist.isEmpty()) {
-            likeRepository.save(Like.of(userId, productId, LikeType.PRODUCT));
+            Optional<Like> exist = likeRepository.findByUserIdAndTargetIdAndType(userId, productId, likeType);
+
+            if (exist.isEmpty()) {
+                likeRepository.save(Like.of(userId, productId, LikeType.PRODUCT));
+            }
+
+        } catch (DataIntegrityViolationException e) {
+            System.out.println("중복 '좋아요' 요청으로 인한 충돌 발생 (정상 처리)");
         }
     }
 
@@ -45,8 +52,12 @@ public class LikeApplicationService {
      */
     @Transactional
     public void unlike(Long userId, Long productId, LikeType likeType) {
-        likeRepository.findByUserIdAndTargetIdAndType(userId, productId, likeType)
-                .ifPresent(likeRepository::delete);
+        try {
+            likeRepository.findByUserIdAndTargetIdAndType(userId, productId, likeType)
+                    .ifPresent(likeRepository::delete);
+        } catch (ObjectOptimisticLockingFailureException e) {
+            System.out.println("'좋아요 취소' 중 낙관적 락 충돌 발생 (정상 처리)");
+        }
     }
 
     /**

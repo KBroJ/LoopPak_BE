@@ -41,7 +41,6 @@ public class ProductApplicationService {
 
         Page<Product> productPage;
 
-        // '좋아요순' 정렬은 처리 방식이 다르므로 분기합니다.
         if ("likes_desc".equals(sort)) {
             // 1. '좋아요' 많은 순으로 정렬된 상품 ID 목록을 페이지 단위로 가져옵니다.
             Pageable idPageable = PageRequest.of(page, size);

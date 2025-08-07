@@ -11,7 +11,12 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(name = "likes")
+@Table(
+    name = "likes",
+    uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"user_id", "targetId", "type"})
+    }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Like extends BaseEntity {
 
@@ -22,6 +27,9 @@ public class Like extends BaseEntity {
     private Long targetId;
     @Enumerated(EnumType.STRING)
     private LikeType type;
+
+    @Version
+    private Long version;
 
     private Like(Long userId, Long targetId, LikeType type) {
 

@@ -54,5 +54,9 @@ public class LikeRepositoryImpl implements LikeRepository {
         return counts.isEmpty() ? 0L : counts.get(0).count();
     }
 
+    @Override
+    public void deleteByUserIdAndTargetIdAndType(Long userId, Long targetId, LikeType likeType) {
+        likeJpaRepository.deleteByUserIdAndTargetIdAndType(userId, targetId, likeType);
+    }
 
 }
