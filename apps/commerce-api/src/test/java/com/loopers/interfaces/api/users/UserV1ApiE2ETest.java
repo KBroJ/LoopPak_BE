@@ -1,6 +1,6 @@
 package com.loopers.interfaces.api.users;
 
-import com.loopers.domain.users.UserModel;
+import com.loopers.domain.users.User;
 import com.loopers.infrastructure.users.UserJpaRepository;
 import com.loopers.interfaces.api.ApiResponse;
 import com.loopers.utils.DatabaseCleanUp;
@@ -112,10 +112,10 @@ public class UserV1ApiE2ETest {
             // arrange
             String requestUrl = ENDPOINT_GET.apply("/me");
 
-            UserModel userModel = new UserModel(
+            User user = new User(
                     USER_ID, GENDER, BIRTH_DATE, EMAIL
             );
-            userJpaRepository.save(userModel);
+            userJpaRepository.save(user);
 
             var headers = new HttpHeaders();
             headers.set("X-USER-ID", USER_ID);

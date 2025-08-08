@@ -19,14 +19,13 @@ erDiagram
         bigint point
         datetime createdAt
         datetime updatedAt
+        datetime deletedAt
     }
     
     BRAND {
         bigint id PK
-        varchar brandId
         varchar name
         varchar description
-        varchar logoUrl
         boolean isActive
         datetime createdAt
         datetime updatedAt
@@ -36,40 +35,60 @@ erDiagram
     PRODUCT {
         bigint id PK
         bigint brandId FK
-        varchar productId
         varchar name
+        varchar description
         bigint price
         bigint stock
+        int max_order_quantity
+        varchar status
         datetime createdAt
         datetime updatedAt
         datetime deletedAt
     }
 
     LIKE {
-        bigint productId PK, FK
-        bigint userId PK, FK
+        bigint id PK
+        bigint userId
+        bigint targetId
+        varchar type
         datetime createdAt
+        datetime updatedAt
+        datetime deletedAt
     }
     
     ORDER {
         bigint id PK
         bigint userId FK
-        bigint productId FK
-        varchar orderId
-        bigint quantity
-        bigint totalPrice
         varchar status
         datetime createdAt
         datetime updatedAt
         datetime deletedAt
     }
     
-    USER ||..|| POINT : userId
-    BRAND ||..o{ PRODUCT : brandId
-    PRODUCT ||..o{ LIKE : productId
-    PRODUCT ||..o{ ORDER : productId
-    USER ||..o{ ORDER : userId
-    USER ||..o{ LIKE : userId
+    ORDER_ITEMS {
+        bigint id PK
+        bigint orderId FK
+        bigint productId FK
+        int quantity
+        bigint price
+        datetime created_at
+        datetime updated_at
+        datetime deleted_at
+    }
+    
+
+
+    USER ||--o{ POINT : "userId"
+    
+    BRAND ||--o{ PRODUCT : "brandId"
+    
+    USER ||..o{ LIKE : "userId"
+    PRODUCT ||..o{ LIKE : "productId"
+    BRAND ||..o{ LIKE : "brandId"
+    
+    USER ||--o{ ORDER : "userId"
+    PRODUCT }o--|{ ORDER_ITEMS : "productId"
+    ORDER ||--|{ ORDER_ITEMS : "orderId"
 
 ```
 ---

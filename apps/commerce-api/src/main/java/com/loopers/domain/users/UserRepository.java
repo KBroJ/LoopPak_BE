@@ -4,10 +4,10 @@ import java.util.Optional;
 
 public interface UserRepository {
 
-    UserModel save(UserModel userModel);
+    User save(User user);
 
     boolean existsByUserId(String userId);
 
-    Optional<UserModel> findByUserId(String userId);
+    Optional<User> findByUserId(String userId);
 
 }

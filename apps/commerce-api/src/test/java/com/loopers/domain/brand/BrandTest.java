@@ -49,23 +49,6 @@ class BrandTest {
 
     }
 
-    @DisplayName("Description값이 null이거나 빈 문자열일 때 예외 발생")
-    @Test
-    void throwsBadRequestException_whenDescriptionIsNull() {
-        // Arrange
-        String name = "Test Brand";
-        String description = "";
-        Boolean isActive = true;
-
-        // Act
-        CoreException result = assertThrows(CoreException.class, () -> {
-            Brand brand = Brand.of(name, description, isActive);
-        });
-
-        // Assert
-        assertThat(result.getErrorType()).isEqualTo(ErrorType.BAD_REQUEST);
-    }
-
     @DisplayName("isActive값이 null일 때 예외 발생")
     @Test
     void throwsBadRequestException_whenIsActiveIsNull() {

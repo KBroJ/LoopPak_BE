@@ -1,18 +1,21 @@
 package com.loopers.domain.points;
 
 
-import com.loopers.domain.users.UserModel;
+import com.loopers.domain.users.User;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 
 public interface PointRepository {
 
-    Optional<PointModel> findById(Long Id);
+    Optional<Point> findById(Long Id);
 
-    PointModel save(PointModel pointModel);
+    Point save(Point point);
 
-    Optional<PointModel> findByUserModelWithUser(@Param("user") UserModel user);
+    Optional<Point> findByUserWithUser(@Param("user") User user);
 
-    Optional<PointModel> findByUserId(Long userId);
+    Optional<Point> findByUserId(Long userId);
+
+    // 동시성 제어를 위한 조회 메소드 추가 (비관적 락)
+    Optional<Point> findByUserIdWithLock(Long userId);
 }

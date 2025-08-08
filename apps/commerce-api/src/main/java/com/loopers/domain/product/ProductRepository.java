@@ -20,5 +20,7 @@ public interface ProductRepository {
 
     List<Product> findAllById(List<Long> productIds);
 
+    List<Product> findAllByIdWithLock(List<Long> productIds);
+
     Page<Product> findActiveProductsOrderByLikesDesc(Long brandId, Pageable pageable);
 }

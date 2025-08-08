@@ -1,6 +1,6 @@
 package com.loopers.interfaces.api.product;
 
-import com.loopers.application.product.ProductFacade;
+import com.loopers.application.product.ProductApplicationService;
 import com.loopers.application.product.ProductResponse;
 import com.loopers.interfaces.api.ApiResponse;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ProductV1Controller implements ProductV1ApiSpec {
 
-    private final ProductFacade productFacade;
+    private final ProductApplicationService productApplicationService;
 
     @GetMapping("/api/v1/products")
     @Override
@@ -24,7 +24,7 @@ public class ProductV1Controller implements ProductV1ApiSpec {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
-        Page<ProductResponse> productPage = productFacade.searchProducts(brandId, sort, page, size);
+        Page<ProductResponse> productPage = productApplicationService.searchProducts(brandId, sort, page, size);
         Page<ProductV1Dto.Summary> response = productPage.map(ProductV1Dto.Summary::from);
 
         return ApiResponse.success(response);
@@ -33,7 +33,7 @@ public class ProductV1Controller implements ProductV1ApiSpec {
     @GetMapping("/api/v1/products/{productId}")
     @Override
     public ApiResponse<ProductV1Dto.Detail> getProduct(@PathVariable Long productId) {
-        ProductResponse productResponse = productFacade.getProductDetail(productId);
+        ProductResponse productResponse = productApplicationService.getProductDetail(productId);
 
         ProductV1Dto.Detail response = ProductV1Dto.Detail.from(productResponse);
         return ApiResponse.success(response);

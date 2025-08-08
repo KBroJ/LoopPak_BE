@@ -1,18 +1,18 @@
 package com.loopers.application.order;
 
-import com.loopers.domain.brand.Brand;
-import com.loopers.domain.brand.BrandService;
+import com.loopers.application.brand.BrandApplicationService;
+import com.loopers.application.brand.BrandInfo;
+import com.loopers.application.points.PointApplicationService;
+import com.loopers.application.users.UserApplicationService;
+import com.loopers.application.users.UserInfo;
 import com.loopers.domain.order.Order;
 import com.loopers.domain.order.OrderItemRequest;
 import com.loopers.domain.order.OrderRequest;
 import com.loopers.domain.order.OrderStatus;
-import com.loopers.domain.points.PointModel;
-import com.loopers.domain.points.PointService;
+import com.loopers.domain.points.Point;
 import com.loopers.domain.product.Product;
 import com.loopers.domain.product.ProductService;
 import com.loopers.domain.product.ProductStatus;
-import com.loopers.domain.users.UserModel;
-import com.loopers.domain.users.UserService;
 import com.loopers.support.error.CoreException;
 import com.loopers.utils.DatabaseCleanUp;
 import org.junit.jupiter.api.*;
@@ -29,39 +29,39 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class OrderUsecaseIntegrationTest {
 
     @Autowired
-    private OrderFacade orderFacade;
+    private OrderApplicationService orderAppService;
 
     @Autowired
-    private UserService userService;
+    private UserApplicationService userAppService;
     @Autowired
-    private BrandService brandService;
+    private BrandApplicationService brandAppService;
     @Autowired
     private ProductService productService;
     @Autowired
-    private PointService pointService;
+    private PointApplicationService pointAppService;
 
     @Autowired
     private DatabaseCleanUp databaseCleanUp;
 
-    private UserModel testUser;
+    private UserInfo testUser;
     private Product product1, product2;
     private Order savedOrder;
 
     @BeforeEach
     void setUp() {
-        testUser = userService.saveUser("testuser", "MALE", "2000-01-01", "test@test.com");
+        testUser = userAppService.saveUser("testuser", "MALE", "2000-01-01", "test@test.com");
 
-        Brand brand = brandService.create(Brand.of("테스트브랜드", "", true));
-        product1 = productService.create(Product.of(brand.getId(), "상품1", "", 10000, 10, 10, ProductStatus.ACTIVE));
-        product2 = productService.create(Product.of(brand.getId(), "상품2", "", 5000, 10, 10, ProductStatus.ACTIVE));
+        BrandInfo brand = brandAppService.create("테스트브랜드", "", true);
+        product1 = productService.create(Product.of(brand.id(), "상품1", "", 10000, 10, 10, ProductStatus.ACTIVE));
+        product2 = productService.create(Product.of(brand.id(), "상품2", "", 5000, 10, 10, ProductStatus.ACTIVE));
 
-        pointService.chargePoint(testUser.getUserId(), 100000L);
+        pointAppService.chargePoint(testUser.userId(), 100000L);
 
         OrderRequest orderRequest = new OrderRequest(List.of(
                 new OrderItemRequest(product1.getId(), 2),
                 new OrderItemRequest(product2.getId(), 1)
-        ));
-        savedOrder = orderFacade.placeOrder(testUser.getId(), orderRequest);
+        ), null);
+        savedOrder = orderAppService.placeOrder(testUser.id(), orderRequest);
     }
 
     @AfterEach
@@ -77,21 +77,21 @@ class OrderUsecaseIntegrationTest {
         @Test
         void succeedsAndChangesStateCorrectly_whenPlacingOrder() {
             // arrange
-            long initialPoints = pointService.getPointByUserId(testUser.getId()).getPoint();
+            long initialPoints = pointAppService.getPointByUserId(testUser.id()).getPoint();
             int initialStock = productService.productInfo(product1.getId()).get().getStock();
 
             OrderRequest orderRequest = new OrderRequest(List.of(
                     new OrderItemRequest(product1.getId(), 2)
-            ));
+            ), null);
 
             // act
-            Order newOrder = orderFacade.placeOrder(testUser.getId(), orderRequest);
+            Order newOrder = orderAppService.placeOrder(testUser.id(), orderRequest);
 
             // assert
             Product updatedProduct = productService.productInfo(product1.getId()).get();
             assertThat(updatedProduct.getStock()).isEqualTo(initialStock - 2);
 
-            PointModel updatedPoint = pointService.getPointByUserId(testUser.getId());
+            Point updatedPoint = pointAppService.getPointByUserId(testUser.id());
             assertThat(updatedPoint.getPoint()).isEqualTo(initialPoints - 20000L);
 
             assertThat(newOrder.getId()).isNotNull();
@@ -102,17 +102,17 @@ class OrderUsecaseIntegrationTest {
         @Test
         void failsAndRollsBack_whenStockIsInsufficient() {
             // arrange
-            long initialPoints = pointService.getPointByUserId(testUser.getId()).getPoint();
+            long initialPoints = pointAppService.getPointByUserId(testUser.id()).getPoint();
             OrderRequest orderRequest = new OrderRequest(List.of(
                     new OrderItemRequest(product1.getId(), 11)
-            ));
+            ), null);
 
             // act & assert
-            assertThatThrownBy(() -> orderFacade.placeOrder(testUser.getId(), orderRequest))
+            assertThatThrownBy(() -> orderAppService.placeOrder(testUser.id(), orderRequest))
                     .isInstanceOf(CoreException.class)
                     .hasMessageContaining("재고가 부족합니다");
 
-            PointModel pointAfterFailure = pointService.getPointByUserId(testUser.getId());
+            Point pointAfterFailure = pointAppService.getPointByUserId(testUser.id());
             assertThat(pointAfterFailure.getPoint()).isEqualTo(initialPoints);
         }
 
@@ -120,16 +120,16 @@ class OrderUsecaseIntegrationTest {
         @Test
         void failsAndRollsBack_whenPointsAreInsufficient() {
             // arrange
-            UserModel poorUser = userService.saveUser("poorUser", "F", "2001-01-01", "poor@test.com");
-            pointService.chargePoint(poorUser.getUserId(), 15000L);
+            UserInfo poorUser = userAppService.saveUser("poorUser", "F", "2001-01-01", "poor@test.com");
+            pointAppService.chargePoint(poorUser.userId(), 15000L);
             int initialStock = productService.productInfo(product1.getId()).get().getStock();
 
             OrderRequest orderRequest = new OrderRequest(List.of(
                     new OrderItemRequest(product1.getId(), 2)
-            ));
+            ), null);
 
             // act & assert
-            assertThatThrownBy(() -> orderFacade.placeOrder(poorUser.getId(), orderRequest))
+            assertThatThrownBy(() -> orderAppService.placeOrder(poorUser.id(), orderRequest))
                     .isInstanceOf(CoreException.class)
                     .hasMessageContaining("포인트가 부족합니다");
 
@@ -142,7 +142,7 @@ class OrderUsecaseIntegrationTest {
     @Test
     void getMyOrders_returnsCorrectOrderSummary() {
         // act
-        Page<OrderSummaryResponse> resultPage = orderFacade.getMyOrders(testUser.getId(), 0, 10);
+        Page<OrderSummaryResponse> resultPage = orderAppService.getMyOrders(testUser.id(), 0, 10);
 
         // assert
         assertThat(resultPage.getTotalElements()).isEqualTo(1);
@@ -159,7 +159,7 @@ class OrderUsecaseIntegrationTest {
     @Test
     void getOrderDetail_returnsCorrectDetailInfo() {
         // act
-        OrderDetailResponse result = orderFacade.getOrderDetail(savedOrder.getId());
+        OrderDetailResponse result = orderAppService.getOrderDetail(savedOrder.getId());
 
         // assert
         assertThat(result.orderId()).isEqualTo(savedOrder.getId());

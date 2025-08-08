@@ -1,8 +1,8 @@
 package com.loopers.infrastructure.points;
 
-import com.loopers.domain.points.PointModel;
+import com.loopers.domain.points.Point;
 import com.loopers.domain.points.PointRepository;
-import com.loopers.domain.users.UserModel;
+import com.loopers.domain.users.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -15,23 +15,28 @@ public class PointRepositoryImpl implements PointRepository {
     private final PointJpaRepository pointJpaRepository;
 
     @Override
-    public Optional<PointModel> findById(Long Id) {
+    public Optional<Point> findById(Long Id) {
         return pointJpaRepository.findById(Id);
     }
 
     @Override
-    public PointModel save(PointModel pointModel) {
-        return pointJpaRepository.save(pointModel);
+    public Point save(Point point) {
+        return pointJpaRepository.save(point);
     }
 
     @Override
-    public Optional<PointModel> findByUserModelWithUser(UserModel user) {
-        return pointJpaRepository.findByUserModelWithUser(user);
+    public Optional<Point> findByUserWithUser(User user) {
+        return pointJpaRepository.findByUserWithUser(user);
     }
 
     @Override
-    public Optional<PointModel> findByUserId(Long userId) {
-        return pointJpaRepository.findByUserModel_Id(userId);
+    public Optional<Point> findByUserId(Long userId) {
+        return pointJpaRepository.findByUserId(userId);
+    }
+
+    @Override
+    public Optional<Point> findByUserIdWithLock(Long userId) {
+        return pointJpaRepository.findByUserIdWithLock(userId);
     }
 
 }
