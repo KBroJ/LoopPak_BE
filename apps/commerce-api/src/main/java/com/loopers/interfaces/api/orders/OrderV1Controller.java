@@ -1,7 +1,7 @@
 package com.loopers.interfaces.api.orders;
 
+import com.loopers.application.order.OrderApplicationService;
 import com.loopers.application.order.OrderDetailResponse;
-import com.loopers.application.order.OrderFacade;
 import com.loopers.application.order.OrderSummaryResponse;
 import com.loopers.domain.order.Order;
 import com.loopers.domain.order.OrderItemRequest;
@@ -18,7 +18,7 @@ import java.util.List;
 @RequestMapping("/api/v1/orders")
 public class OrderV1Controller implements OrderV1ApiSpec {
 
-    private final OrderFacade orderFacade;
+    private final OrderApplicationService orderAppService;
 
     @Override
     @PostMapping
@@ -29,9 +29,9 @@ public class OrderV1Controller implements OrderV1ApiSpec {
         List<OrderItemRequest> itemRequests = request.items().stream()
                 .map(item -> new OrderItemRequest(item.productId(), item.quantity()))
                 .toList();
-        OrderRequest orderRequest = new OrderRequest(itemRequests);
+        OrderRequest orderRequest = new OrderRequest(itemRequests, request.couponId());
 
-        Order newOrder = orderFacade.placeOrder(userId, orderRequest);
+        Order newOrder = orderAppService.placeOrder(userId, orderRequest);
 
         return ApiResponse.success(OrderV1Dto.OrderResponse.from(newOrder));
     }
@@ -43,7 +43,7 @@ public class OrderV1Controller implements OrderV1ApiSpec {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
-        Page<OrderSummaryResponse> myOrders = orderFacade.getMyOrders(userId, page, size);
+        Page<OrderSummaryResponse> myOrders = orderAppService.getMyOrders(userId, page, size);
         Page<OrderV1Dto.OrderSummary> response = myOrders.map(OrderV1Dto.OrderSummary::from);
 
         return ApiResponse.success(response);
@@ -53,7 +53,7 @@ public class OrderV1Controller implements OrderV1ApiSpec {
     @GetMapping("/{orderId}")
     public ApiResponse<OrderV1Dto.OrderDetail> getOrderDetail(@PathVariable Long orderId) {
 
-        OrderDetailResponse orderDetail = orderFacade.getOrderDetail(orderId);
+        OrderDetailResponse orderDetail = orderAppService.getOrderDetail(orderId);
 
         return ApiResponse.success(OrderV1Dto.OrderDetail.from(orderDetail));
     }

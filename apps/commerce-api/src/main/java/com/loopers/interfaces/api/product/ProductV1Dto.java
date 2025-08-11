@@ -15,11 +15,11 @@ public class ProductV1Dto {
     ) {
         public static Summary from(ProductResponse response) {
             return new Summary(
-                    response.getProduct().getId(),
-                    response.getProduct().getName(),
-                    response.getProduct().getPrice(),
-                    response.getProduct().getBrandId(),
-                    response.getLikeCount()
+                    response.productId(),
+                    response.name(),
+                    response.price(),
+                    response.brandId(),
+                    response.likeCount()
             );
         }
     }
@@ -35,16 +35,15 @@ public class ProductV1Dto {
             long likeCount
     ) {
         public static Detail from(ProductResponse response) {
-            Product product = response.getProduct();
             return new Detail(
-                    product.getId(),
-                    product.getName(),
-                    product.getDescription(),
-                    product.getPrice(),
-                    product.getStock(),
-                    product.getStatus(),
-                    product.getBrandId(),
-                    response.getLikeCount()
+                    response.productId(),
+                    response.name(),
+                    response.description(),
+                    response.price(),
+                    response.stock(),
+                    response.productStatus(),
+                    response.brandId(),
+                    response.likeCount()
             );
         }
     }
