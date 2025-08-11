@@ -4,6 +4,7 @@ dependencies {
     implementation(project(":supports:jackson"))
     implementation(project(":supports:logging"))
     implementation(project(":supports:monitoring"))
+    implementation(project(":modules:redis"))
 
     // web
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -17,4 +18,5 @@ dependencies {
 
     // test-fixtures
     testImplementation(testFixtures(project(":modules:jpa")))
+    testImplementation(testFixtures(project(":modules:redis")))
 }

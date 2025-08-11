@@ -6,6 +6,7 @@ include(
     ":supports:jackson",
     ":supports:logging",
     ":supports:monitoring",
+    ":modules:redis",
 )
 
 // configurations
@@ -28,3 +29,5 @@ pluginManagement {
         }
     }
 }
+include("modules:redis")
+findProject(":modules:redis")?.name = "redis"
