@@ -39,33 +39,20 @@ public class ProductApplicationService {
     @Transactional(readOnly = true)
     public Page<ProductResponse> searchProducts(Long brandId, String sort, int page, int size) {
 
-        Page<Product> productPage;
+        Sort sortCondition = switch (sort) {
+            case "price_asc" -> Sort.by(Sort.Direction.ASC, "price");
+            case "likes_desc" -> Sort.by(Sort.Direction.DESC, "likeCount");
+            default -> Sort.by(Sort.Direction.DESC, "createdAt");
+        };
 
-        if ("likes_desc".equals(sort)) {
-            // 1. '좋아요' 많은 순으로 정렬된 상품 ID 목록을 페이지 단위로 가져옵니다.
-            Pageable idPageable = PageRequest.of(page, size);
-            Page<Long> topLikedProductIdsPage = likeRepository.findProductIdsOrderByLikesDesc(brandId, idPageable);
+        Pageable pageable = PageRequest.of(page, size, sortCondition);
 
-            // 2. 해당 ID 목록으로 Product 리스트를 조회합니다.
-            List<Long> productIds = topLikedProductIdsPage.getContent();
-            List<Product> products = productRepository.findAllById(productIds);
-
-            // 3. ID 순서에 맞게 Product 리스트를 재정렬하고 Page 객체로 만듭니다.
-            productPage = reorderProductsAndCreatePage(products, productIds, topLikedProductIdsPage);
-
-        } else {
-            // 그 외 정렬 (최신순, 가격순 등 DB에서 직접 처리)
-            Sort sortCondition = switch (sort) {
-                case "price_asc" -> Sort.by(Sort.Direction.ASC, "price");
-                default -> Sort.by(Sort.Direction.DESC, "createdAt");
-            };
-            Pageable pageable = PageRequest.of(page, size, sortCondition);
-            Specification<Product> spec = Specification.where(ProductSpecs.isActive());
-            if (brandId != null) {
-                spec = spec.and(ProductSpecs.isBrand(brandId));
-            }
-            productPage = productRepository.productList(spec, pageable);
+        Specification<Product> spec = Specification.where(ProductSpecs.isActive());
+        if (brandId != null) {
+            spec = spec.and(ProductSpecs.isBrand(brandId));
         }
+
+        Page<Product> productPage = productRepository.productList(spec, pageable);
 
         // 최종적으로 Product 페이지에 '좋아요' 수를 매핑하여 DTO로 변환합니다.
         return mapLikeCountsToResponsePage(productPage);
