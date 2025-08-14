@@ -8,6 +8,7 @@ import com.loopers.domain.like.Like;
 import com.loopers.domain.like.LikeRepository;
 import com.loopers.domain.like.LikeType;
 import com.loopers.domain.product.Product;
+import com.loopers.domain.product.ProductRepository;
 import com.loopers.domain.product.ProductService;
 import com.loopers.domain.product.ProductStatus;
 import com.loopers.utils.DatabaseCleanUp;
@@ -33,7 +34,10 @@ class LikeApplicationServiceTest {
     @Autowired
     private BrandApplicationService brandApplicationService;
     @Autowired
+    private ProductRepository productRepository;
+    @Autowired
     private LikeRepository likeRepository;
+
     @Autowired
     private DatabaseCleanUp databaseCleanUp;
 
@@ -96,6 +100,37 @@ class LikeApplicationServiceTest {
             // assert
             List<Like> userLikes = likeRepository.findByUserIdAndType(userInfo.id(), LikeType.PRODUCT);
             assertThat(userLikes).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("좋아요가 등록되면 상품의 likeCount가 1 증가한다.")
+        void increaseLikeCount_whenLiked() {
+            // act
+            likeApplicationService.like(userInfo.id(), product1.getId(), LikeType.PRODUCT);
+
+            // assert
+            Optional<Like> result = likeRepository.findByUserIdAndTargetIdAndType(userInfo.id(), product1.getId(), LikeType.PRODUCT);
+            assertThat(result).isPresent();
+
+            Product updatedProduct = productRepository.productInfo(product1.getId()).get();
+            assertThat(updatedProduct.getLikeCount()).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("등록된 좋아요가 취소되면 상품의 likeCount가 1 감소한다.")
+        void decreaseLikeCount_whenUnliked() {
+            // arrange
+            likeApplicationService.like(userInfo.id(), product1.getId(), LikeType.PRODUCT);
+
+            // act
+            likeApplicationService.unlike(userInfo.id(), product1.getId(), LikeType.PRODUCT);
+
+            // assert
+            Optional<Like> result = likeRepository.findByUserIdAndTargetIdAndType(userInfo.id(), product1.getId(), LikeType.PRODUCT);
+            assertThat(result).isEmpty();
+
+            Product updatedProduct = productRepository.productInfo(product1.getId()).get();
+            assertThat(updatedProduct.getLikeCount()).isZero();
         }
 
     }

@@ -6,6 +6,8 @@ import com.loopers.domain.like.LikeRepository;
 import com.loopers.domain.like.LikeType;
 import com.loopers.domain.product.Product;
 import com.loopers.domain.product.ProductRepository;
+import com.loopers.support.error.CoreException;
+import com.loopers.support.error.ErrorType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -13,6 +15,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +37,11 @@ public class LikeApplicationService {
      * 상품에 '좋아요'를 등록합니다.
      */
     @Transactional
+    @Retryable(
+            value = { ObjectOptimisticLockingFailureException.class },  // 이 예외가 발생하면 재시도
+            maxAttempts = 20,                                           // 최대 3번 시도
+            backoff = @Backoff(delay = 100)                             // 재시도 사이에 100ms 대기
+    )
     public void like(Long userId, Long productId, LikeType likeType) {
         try {
 
@@ -40,6 +49,10 @@ public class LikeApplicationService {
 
             if (exist.isEmpty()) {
                 likeRepository.save(Like.of(userId, productId, LikeType.PRODUCT));
+
+                Product product = productRepository.productInfo(productId)
+                        .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "상품 정보를 찾을 수 없습니다."));
+                product.increaseLikeCount();
             }
 
         } catch (DataIntegrityViolationException e) {
@@ -52,13 +65,17 @@ public class LikeApplicationService {
      */
     @Transactional
     public void unlike(Long userId, Long productId, LikeType likeType) {
-        try {
-//            likeRepository.findByUserIdAndTargetIdAndType(userId, productId, likeType)
-//                    .ifPresent(likeRepository::delete);
-            likeRepository.deleteByUserIdAndTargetIdAndType(userId, productId, likeType);
-        } catch (ObjectOptimisticLockingFailureException e) {
-            System.out.println("'좋아요 취소' 중 낙관적 락 충돌 발생 (정상 처리)");
+
+        Optional<Like> likeOptional = likeRepository.findByUserIdAndTargetIdAndType(userId, productId, likeType);
+
+        if (likeOptional.isPresent()) {
+            likeRepository.delete(likeOptional.get());
+
+            Product product = productRepository.productInfo(productId)
+                    .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "상품 정보를 찾을 수 없습니다."));
+            product.decreaseLikeCount();
         }
+
     }
 
     /**
