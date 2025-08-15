@@ -39,7 +39,7 @@ public class ProductApplicationService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ProductResponse> searchProducts(Long brandId, String sort, int page, int size) {
+    public PageResponse<ProductResponse> searchProducts(Long brandId, String sort, int page, int size) {
 
         // 1. 조회 조건에 따라 동적인 캐시 키 생성
         String cacheKey = "products:list::b" + brandId + ":s" + sort + ":p" + page + ":s" + size;
@@ -47,16 +47,10 @@ public class ProductApplicationService {
         // 2. 캐시에서 먼저 조회
         Object cachedData = redisTemplate.opsForValue().get(cacheKey);
         if (cachedData != null) {
+            // 3. 역직렬화 발생 : objectMapper.convertValue(cachedData, new TypeReference<>() {})
+            //      => cachedData(JSON 문자열)를 Java 객체(PageResponse<ProductResponse>)로 다시 변환
             System.out.println("✅ Cache Hit! key: " + cacheKey);
-            // 3. 캐시된 Page 객체를 역직렬화하여 반환
-            // PageImpl은 기본 생성자가 없어 역직렬화에 문제가 생길 수 있으므로, LinkedHashMap으로 받은 후 변환\
-            try {
-                Page<ProductResponse> pageResult = objectMapper.convertValue(cachedData, new TypeReference<PageImpl<ProductResponse>>() {});
-                return pageResult;
-            } catch (Exception e) {
-                // 역직렬화 실패 시 캐시를 삭제하고 DB에서 다시 조회하도록 유도
-                redisTemplate.delete(cacheKey);
-            }
+            return objectMapper.convertValue(cachedData, new TypeReference<>() {});
         }
 
         System.out.println("🚨 Cache Miss! key: " + cacheKey);
@@ -75,12 +69,13 @@ public class ProductApplicationService {
         }
 
         Page<Product> productPage = productRepository.productList(spec, pageable);
-        Page<ProductResponse> responsePage = productPage.map(ProductResponse::from);
+        PageResponse<ProductResponse> responseDto = PageResponse.from(productPage.map(ProductResponse::from));
 
         // 5. DB에서 가져온 데이터를 캐시에 저장 (유효시간 1분 설정)
-        redisTemplate.opsForValue().set(cacheKey, responsePage, Duration.ofMinutes(1));
+        // 직렬화 발생 : RedisConfig에 설정해 둔 'GenericJackson2JsonRedisSerializer' 이 responseDto를 'JSON 문자열' 로 분해
+        redisTemplate.opsForValue().set(cacheKey, responseDto, Duration.ofMinutes(1));
 
-        return responsePage;
+        return responseDto;
     }
 
     // ID 목록 순서에 맞게 Product 리스트를 정렬하고 Page 객체로 재구성하는 헬퍼 메소드

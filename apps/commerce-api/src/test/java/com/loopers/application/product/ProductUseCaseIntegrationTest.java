@@ -82,12 +82,12 @@ class ProductUseCaseIntegrationTest {
             likeAppService.like(1L, p2.productId(), LikeType.PRODUCT);
 
             // act
-            Page<ProductResponse> result = productAppService.searchProducts(null, "latest", 0, 10);
-            List<ProductResponse> content = result.getContent();
+            PageResponse<ProductResponse> result = productAppService.searchProducts(null, "latest", 0, 10);
+            List<ProductResponse> content = result.content();
 
             // assert
             assertAll(
-                    () -> assertThat(result.getTotalElements()).isEqualTo(2),
+                    () -> assertThat(result.totalElements()).isEqualTo(2),
                     () -> assertThat(content.get(0).productId()).isEqualTo(p2.productId()),
                     () -> assertThat(content.get(0).likeCount()).isEqualTo(1),
                     () -> assertThat(content.get(1).productId()).isEqualTo(p1.productId()),
@@ -104,10 +104,10 @@ class ProductUseCaseIntegrationTest {
             productAppService.create(brandAId, "최저가상품", "설명", 100, 10, 10, ProductStatus.ACTIVE);
 
             // act
-            Page<ProductResponse> resultPage = productAppService.searchProducts(null, "price_asc", 0, 10);
+            PageResponse<ProductResponse> resultPage = productAppService.searchProducts(null, "price_asc", 0, 10);
 
             // assert
-            assertThat(resultPage.getContent())
+            assertThat(resultPage.content())
                     .isSortedAccordingTo(Comparator.comparing(response -> response.price()));
         }
 
@@ -127,8 +127,8 @@ class ProductUseCaseIntegrationTest {
             likeAppService.like(1L, p1.productId(), LikeType.PRODUCT);
 
             // act
-            Page<ProductResponse> result = productAppService.searchProducts(null, "likes_desc", 0, 10);
-            List<ProductResponse> content = result.getContent();
+            PageResponse<ProductResponse> result = productAppService.searchProducts(null, "likes_desc", 0, 10);
+            List<ProductResponse> content = result.content();
 
             // assert
             assertThat(content.get(0).productId()).isEqualTo(p2.productId());
