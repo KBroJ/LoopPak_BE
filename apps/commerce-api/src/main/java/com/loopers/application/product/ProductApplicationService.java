@@ -45,15 +45,15 @@ public class ProductApplicationService {
         String cacheKey = "products:list::b" + brandId + ":s" + sort + ":p" + page + ":s" + size;
 
         // 2. 캐시에서 먼저 조회
-//        Object cachedData = redisTemplate.opsForValue().get(cacheKey);
-//        if (cachedData != null) {
-//            // 3. 역직렬화 발생 : objectMapper.convertValue(cachedData, new TypeReference<>() {})
-//            //      => cachedData(JSON 문자열)를 Java 객체(PageResponse<ProductResponse>)로 다시 변환
-//            System.out.println("✅ Cache Hit! key: " + cacheKey);
-//            return objectMapper.convertValue(cachedData, new TypeReference<>() {});
-//        }
-//
-//        System.out.println("🚨 Cache Miss! key: " + cacheKey);
+        Object cachedData = redisTemplate.opsForValue().get(cacheKey);
+        if (cachedData != null) {
+            // 3. 역직렬화 발생 : objectMapper.convertValue(cachedData, new TypeReference<>() {})
+            //      => cachedData(JSON 문자열)를 Java 객체(PageResponse<ProductResponse>)로 다시 변환
+            System.out.println("✅ Cache Hit! key: " + cacheKey);
+            return objectMapper.convertValue(cachedData, new TypeReference<>() {});
+        }
+
+        System.out.println("🚨 Cache Miss! key: " + cacheKey);
 
         // 4. 캐시에 없으면 DB에서 조회
         Sort sortCondition = switch (sort) {
@@ -73,7 +73,7 @@ public class ProductApplicationService {
 
         // 5. DB에서 가져온 데이터를 캐시에 저장 (유효시간 1분 설정)
         // 직렬화 발생 : RedisConfig에 설정해 둔 'GenericJackson2JsonRedisSerializer' 이 responseDto를 'JSON 문자열' 로 분해
-//        redisTemplate.opsForValue().set(cacheKey, responseDto, Duration.ofMinutes(1));
+        redisTemplate.opsForValue().set(cacheKey, responseDto, Duration.ofMinutes(1));
 
         return responseDto;
     }
@@ -94,11 +94,11 @@ public class ProductApplicationService {
         String cacheKey = "product:detail:" + productId;
 
         // 1. 캐시에서 먼저 조회
-//        Object cachedData = redisTemplate.opsForValue().get(cacheKey);
-//        if (cachedData != null) {
-//            System.out.println("✅ Cache Hit! productId: " + productId);
-//            return (ProductResponse) cachedData;
-//        }
+        Object cachedData = redisTemplate.opsForValue().get(cacheKey);
+        if (cachedData != null) {
+            System.out.println("✅ Cache Hit! productId: " + productId);
+            return (ProductResponse) cachedData;
+        }
 
         // 2. 캐시에 없으면(Cache Miss) DB에서 조회
         System.out.println("🚨 Cache Miss! productId: " + productId);
@@ -109,7 +109,7 @@ public class ProductApplicationService {
 
         // 3. DB에서 가져온 데이터를 캐시에 저장 (유효시간 10분 설정)
         // Duration.ofMinutes(10) : TTL(Time To Live) 설정 - 이 데이터는 캐시에 저장된 후 10분이 지나면 자동으로 삭제
-//        redisTemplate.opsForValue().set(cacheKey, response, Duration.ofMinutes(10));
+        redisTemplate.opsForValue().set(cacheKey, response, Duration.ofMinutes(10));
         //  ----- Cache-Aside 로직 종료 -----
 
         return response;
