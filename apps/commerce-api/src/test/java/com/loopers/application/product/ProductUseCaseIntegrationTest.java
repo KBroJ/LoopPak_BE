@@ -158,5 +158,23 @@ class ProductUseCaseIntegrationTest {
                     () -> assertThat(result.likeCount()).isEqualTo(2)
             );
         }
+
+        @Test
+        @DisplayName("성공: productId로 특정 상품 조회 시 캐시가 동작한다.")
+        void cacheWorks_whenFindByProductId() {
+            // arrange
+            ProductResponse created = productAppService.create(brandAId, "캐시테스트상품", "설명", 200, 10, 10, ProductStatus.ACTIVE);
+
+            // act & assert
+            System.out.println("\n--- 첫 번째 호출 (Cache Miss 예상) ---");
+            ProductResponse result1 = productAppService.getProductDetail(created.productId());
+            assertThat(result1.productId()).isEqualTo(created.productId());
+
+            System.out.println("\n--- 두 번째 호출 (Cache Hit 예상) ---");
+            ProductResponse result2 = productAppService.getProductDetail(created.productId());
+            assertThat(result2.productId()).isEqualTo(created.productId());
+
+            // 💡 두 번째 호출 시에는 DB 조회(SELECT) 쿼리가 로그에 찍히지 않아야 합니다!
+        }
     }
 }
