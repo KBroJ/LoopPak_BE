@@ -1,8 +1,5 @@
 package com.loopers.application.product;
 
-import com.loopers.domain.like.LikeCountDto;
-import com.loopers.domain.like.LikeRepository;
-import com.loopers.domain.like.LikeType;
 import com.loopers.domain.product.Product;
 import com.loopers.domain.product.ProductRepository;
 import com.loopers.domain.product.ProductSpecs;
@@ -24,7 +21,6 @@ import java.util.stream.Collectors;
 public class ProductApplicationService {
 
     private final ProductRepository productRepository;
-    private final LikeRepository likeRepository;
 
     @Transactional
     public ProductResponse create(Long brandId, String name, String description, long price, int stock, int maxOrderQuantity, ProductStatus
@@ -32,8 +28,8 @@ public class ProductApplicationService {
         // 도메인 객체 생성을 위임
         Product product = Product.of(brandId, name, description, price, stock, maxOrderQuantity, status);
         Product savedProduct = productRepository.save(product);
-        // '좋아요'는 아직 없으므로 0으로 DTO 생성
-        return ProductResponse.from(savedProduct, 0L);
+
+        return ProductResponse.from(savedProduct);
     }
 
     @Transactional(readOnly = true)
@@ -54,8 +50,7 @@ public class ProductApplicationService {
 
         Page<Product> productPage = productRepository.productList(spec, pageable);
 
-        // 최종적으로 Product 페이지에 '좋아요' 수를 매핑하여 DTO로 변환합니다.
-        return mapLikeCountsToResponsePage(productPage);
+        return productPage.map(ProductResponse::from);
     }
 
     // ID 목록 순서에 맞게 Product 리스트를 정렬하고 Page 객체로 재구성하는 헬퍼 메소드
@@ -67,30 +62,12 @@ public class ProductApplicationService {
         return new PageImpl<>(sortedProducts, idPage.getPageable(), idPage.getTotalElements());
     }
 
-    // Product 페이지에 '좋아요' 수를 매핑하여 최종 DTO 페이지를 만드는 헬퍼 메소드
-    private Page<ProductResponse> mapLikeCountsToResponsePage(Page<Product> productPage) {
-        if (productPage.isEmpty()) {
-            return Page.empty();
-        }
-
-        List<Long> productIds = productPage.getContent().stream().map(Product::getId).toList();
-        List<LikeCountDto> likeCountDtos = likeRepository.countByTargetIdIn(productIds, LikeType.PRODUCT);
-
-        Map<Long, Long> likeCounts = likeCountDtos.stream()
-                .collect(Collectors.toMap(LikeCountDto::targetId, LikeCountDto::count));
-
-        return productPage.map(product -> ProductResponse.from(product, likeCounts.getOrDefault(product.getId(), 0L)));
-    }
-
-
     @Transactional(readOnly = true)
     public ProductResponse getProductDetail(Long productId) {
         Product product = productRepository.productInfo(productId)
                 .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "상품 정보를 찾을 수 없습니다."));
 
-        long likeCount = likeRepository.getLikeCount(productId);
-
-        return ProductResponse.from(product, likeCount);
+        return ProductResponse.from(product);
     }
 
 }
