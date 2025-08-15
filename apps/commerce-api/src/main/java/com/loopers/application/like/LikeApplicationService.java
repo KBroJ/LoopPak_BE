@@ -14,6 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
@@ -32,6 +33,7 @@ public class LikeApplicationService {
 
     private final LikeRepository likeRepository;
     private final ProductRepository productRepository;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     /**
      * 상품에 '좋아요'를 등록합니다.
@@ -53,6 +55,10 @@ public class LikeApplicationService {
                 Product product = productRepository.productInfo(productId)
                         .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "상품 정보를 찾을 수 없습니다."));
                 product.increaseLikeCount();
+
+                // Redis 캐시 삭제(상품의 총 좋아요 수)
+                String cacheKey = "product:detail:" + productId;
+                redisTemplate.delete(cacheKey);
             }
 
         } catch (DataIntegrityViolationException e) {
@@ -74,6 +80,10 @@ public class LikeApplicationService {
             Product product = productRepository.productInfo(productId)
                     .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "상품 정보를 찾을 수 없습니다."));
             product.decreaseLikeCount();
+
+            // Redis 캐시 삭제(상품의 총 좋아요 수)
+            String cacheKey = "product:detail:" + productId;
+            redisTemplate.delete(cacheKey);
         }
 
     }
