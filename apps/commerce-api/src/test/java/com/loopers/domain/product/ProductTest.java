@@ -252,4 +252,58 @@ class ProductTest {
         Assertions.assertThat(product.getStatus()).isEqualTo(ProductStatus.OUT_OF_STOCK);
     }
 
+    @DisplayName("상품 생성 시 likeCount는 0으로 초기화된다.")
+    @Test
+    void likeCount_isInitializedToZero_whenProductIsCreated() {
+        // Arrange & Act
+        Product product = Product.of(BRAND_ID, NAME, DESCRIPTION, PRICE, STOCK, MAX_ORDER_QUANTITY, STATUS);
+
+        // Assert
+        Assertions.assertThat(product.getLikeCount()).isZero();
+    }
+
+    @DisplayName("좋아요 수 증가/감소")
+    @Nested
+    class LikeCountManagement {
+        @Test
+        @DisplayName("increaseLikeCount 호출 시 likeCount가 1 증가한다.")
+        void increaseLikeCount() {
+            // Arrange
+            Product product = Product.of(BRAND_ID, NAME, DESCRIPTION, PRICE, STOCK, MAX_ORDER_QUANTITY, STATUS);
+
+            // Act
+            product.increaseLikeCount();
+
+            // Assert
+            Assertions.assertThat(product.getLikeCount()).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("decreaseLikeCount 호출 시 likeCount가 1 감소한다.")
+        void decreaseLikeCount() {
+            // Arrange
+            Product product = Product.of(BRAND_ID, NAME, DESCRIPTION, PRICE, STOCK, MAX_ORDER_QUANTITY, STATUS);
+            product.increaseLikeCount(); // 먼저 1로 만듦
+
+            // Act
+            product.decreaseLikeCount();
+
+            // Assert
+            Assertions.assertThat(product.getLikeCount()).isZero();
+        }
+
+        @Test
+        @DisplayName("likeCount가 0일 때 decreaseLikeCount를 호출해도 0 미만으로 내려가지 않는다.")
+        void doesNotDecreaseBelowZero() {
+            // Arrange
+            Product product = Product.of(BRAND_ID, NAME, DESCRIPTION, PRICE, STOCK, MAX_ORDER_QUANTITY, STATUS);
+
+            // Act
+            product.decreaseLikeCount();
+
+            // Assert
+            Assertions.assertThat(product.getLikeCount()).isZero();
+        }
+    }
+
 }

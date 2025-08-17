@@ -15,7 +15,7 @@ public record ProductResponse(
 
 ) {
 
-    public static ProductResponse from(Product product, long likeCount) {
+    public static ProductResponse from(Product product) {
         return new ProductResponse(
                 product.getId(),
                 product.getBrandId(),
@@ -24,7 +24,7 @@ public record ProductResponse(
                 product.getPrice(),
                 product.getStock(),
                 product.getStatus(),
-                likeCount
+                product.getLikeCount()
         );
     }
 

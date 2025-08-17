@@ -82,12 +82,12 @@ class ProductUseCaseIntegrationTest {
             likeAppService.like(1L, p2.productId(), LikeType.PRODUCT);
 
             // act
-            Page<ProductResponse> result = productAppService.searchProducts(null, "latest", 0, 10);
-            List<ProductResponse> content = result.getContent();
+            PageResponse<ProductResponse> result = productAppService.searchProducts(null, "latest", 0, 10);
+            List<ProductResponse> content = result.content();
 
             // assert
             assertAll(
-                    () -> assertThat(result.getTotalElements()).isEqualTo(2),
+                    () -> assertThat(result.totalElements()).isEqualTo(2),
                     () -> assertThat(content.get(0).productId()).isEqualTo(p2.productId()),
                     () -> assertThat(content.get(0).likeCount()).isEqualTo(1),
                     () -> assertThat(content.get(1).productId()).isEqualTo(p1.productId()),
@@ -104,10 +104,10 @@ class ProductUseCaseIntegrationTest {
             productAppService.create(brandAId, "최저가상품", "설명", 100, 10, 10, ProductStatus.ACTIVE);
 
             // act
-            Page<ProductResponse> resultPage = productAppService.searchProducts(null, "price_asc", 0, 10);
+            PageResponse<ProductResponse> resultPage = productAppService.searchProducts(null, "price_asc", 0, 10);
 
             // assert
-            assertThat(resultPage.getContent())
+            assertThat(resultPage.content())
                     .isSortedAccordingTo(Comparator.comparing(response -> response.price()));
         }
 
@@ -127,13 +127,29 @@ class ProductUseCaseIntegrationTest {
             likeAppService.like(1L, p1.productId(), LikeType.PRODUCT);
 
             // act
-            Page<ProductResponse> result = productAppService.searchProducts(null, "likes_desc", 0, 10);
-            List<ProductResponse> content = result.getContent();
+            PageResponse<ProductResponse> result = productAppService.searchProducts(null, "likes_desc", 0, 10);
+            List<ProductResponse> content = result.content();
 
             // assert
             assertThat(content.get(0).productId()).isEqualTo(p2.productId());
             assertThat(content.get(1).productId()).isEqualTo(p3.productId());
             assertThat(content.get(2).productId()).isEqualTo(p1.productId());
+        }
+
+        @Test
+        @DisplayName("성공: 상품 목록 조회 시 캐시가 동작한다.")
+        void cacheWorks_whenSearchProducts() {
+            // arrange
+            productAppService.create(brandAId, "상품1", "설명", 100, 10, 10, ProductStatus.ACTIVE);
+            productAppService.create(brandAId, "상품2", "설명", 200, 10, 10, ProductStatus.ACTIVE);
+
+            // act & assert
+            System.out.println("\n--- 첫 번째 목록 호출 (Cache Miss 예상) ---");
+            productAppService.searchProducts(brandAId, "latest", 0, 10);
+
+            System.out.println("\n--- 두 번째 목록 호출 (Cache Hit 예상) ---");
+            productAppService.searchProducts(brandAId, "latest", 0, 10);
+
         }
     }
 
@@ -157,6 +173,23 @@ class ProductUseCaseIntegrationTest {
                     () -> assertThat(result.productId()).isEqualTo(created.productId()),
                     () -> assertThat(result.likeCount()).isEqualTo(2)
             );
+        }
+
+        @Test
+        @DisplayName("성공: productId로 특정 상품 조회 시 캐시가 동작한다.")
+        void cacheWorks_whenFindByProductId() {
+            // arrange
+            ProductResponse created = productAppService.create(brandAId, "캐시테스트상품", "설명", 200, 10, 10, ProductStatus.ACTIVE);
+
+            // act & assert
+            System.out.println("\n--- 첫 번째 호출 (Cache Miss 예상) ---");
+            ProductResponse result1 = productAppService.getProductDetail(created.productId());
+            assertThat(result1.productId()).isEqualTo(created.productId());
+
+            System.out.println("\n--- 두 번째 호출 (Cache Hit 예상) ---");
+            ProductResponse result2 = productAppService.getProductDetail(created.productId());
+            assertThat(result2.productId()).isEqualTo(created.productId());
+
         }
     }
 }

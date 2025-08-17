@@ -28,9 +28,6 @@ public class Like extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private LikeType type;
 
-    @Version
-    private Long version;
-
     private Like(Long userId, Long targetId, LikeType type) {
 
         if (userId == null || userId < 0) {

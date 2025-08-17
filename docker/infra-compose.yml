@@ -1,22 +1,29 @@
 version: '3'
 services:
-  mysql:
-    image: mysql:8.0
-    ports:
-      - "3306:3306"
-    environment:
-      - MYSQL_ROOT_PASSWORD=root
-      - MYSQL_USER=application
-      - MYSQL_PASSWORD=application
-      - MYSQL_DATABASE=loopers
-      - MYSQL_CHARACTER_SET=utf8mb4
-      - MYSQL_COLLATE=utf8mb4_general_ci
-    volumes:
-      - mysql-8-data:/var/lib/mysql
+    mysql:
+        image: mysql:8.0
+        ports:
+            - "3306:3306"
+        environment:
+            - MYSQL_ROOT_PASSWORD=root
+            - MYSQL_USER=application
+            - MYSQL_PASSWORD=application
+            - MYSQL_DATABASE=loopers
+            - MYSQL_CHARACTER_SET=utf8mb4
+            - MYSQL_COLLATE=utf8mb4_general_ci
+        volumes:
+            - mysql-8-data:/var/lib/mysql
+    redis:
+        image: redis:7-alpine
+        ports:
+            - "6379:6379"
+        volumes:
+            - redis-data:/data
 
 volumes:
-  mysql-8-data:
+    mysql-8-data:
+    redis-data:
 
 networks:
-  default:
-    driver: bridge
+    default:
+        driver: bridge
