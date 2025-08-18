@@ -2,11 +2,11 @@ package com.loopers.infrastructure.product;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.loopers.application.product.PageResponse;
 import com.loopers.application.product.ProductResponse;
 import com.loopers.domain.product.ProductCacheRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -38,7 +38,7 @@ public class ProductCacheRepositoryImpl implements ProductCacheRepository {
      *  상품 목록 캐시 조회
      */
     @Override
-    public Optional<PageResponse<ProductResponse>> getProductList(
+    public Optional<Page<ProductResponse>> getProductList(
             Long brandId, String sort, int page, int size
     ) {
         
@@ -52,8 +52,9 @@ public class ProductCacheRepositoryImpl implements ProductCacheRepository {
             }
             
             log.debug("✅ Cache Hit! key: {}", cacheKey);
-            PageResponse<ProductResponse> result = objectMapper.readValue(
-                json, new TypeReference<PageResponse<ProductResponse>>() {});
+            Page<ProductResponse> result = objectMapper.readValue(
+                json, new TypeReference<Page<ProductResponse>>() {}
+            );
             
             return Optional.of(result);
             
@@ -65,11 +66,11 @@ public class ProductCacheRepositoryImpl implements ProductCacheRepository {
     
     @Override
     public void saveProductList(
-            Long brandId, String sort, int page, int size, 
-            PageResponse<ProductResponse> productPage
+            Long brandId, String sort, int page, int size,
+            Page<ProductResponse> productPage
     ) {
         
-        if (productPage == null || productPage.content().isEmpty()) {
+        if ( productPage == null || productPage.getContent().isEmpty()) {
             return; // 빈 데이터는 캐시하지 않음
         }
         

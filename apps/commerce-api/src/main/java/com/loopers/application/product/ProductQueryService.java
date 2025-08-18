@@ -22,10 +22,10 @@ public class ProductQueryService {
     private final ProductCacheRepository productCacheRepository;
 
     @Transactional(readOnly = true)
-    public PageResponse<ProductResponse> searchProducts(Long brandId, String sort, int page, int size) {
+    public Page<ProductResponse> searchProducts(Long brandId, String sort, int page, int size) {
 
         // 1. 캐시에서 먼저 조회
-        Optional<PageResponse<ProductResponse>> cached = productCacheRepository.getProductList(brandId, sort, page, size);
+        Optional<Page<ProductResponse>> cached = productCacheRepository.getProductList(brandId, sort, page, size);
         if (cached.isPresent()) {
             return cached.get();
         }
@@ -44,7 +44,7 @@ public class ProductQueryService {
         }
 
         Page<Product> productPage = productRepository.productList(spec, pageable);
-        PageResponse<ProductResponse> responseDto = PageResponse.from(productPage.map(ProductResponse::from));
+        Page<ProductResponse> responseDto = productPage.map(ProductResponse::from);
 
         // 3. DB에서 가져온 데이터를 캐시에 저장
         productCacheRepository.saveProductList(brandId, sort, page, size, responseDto);

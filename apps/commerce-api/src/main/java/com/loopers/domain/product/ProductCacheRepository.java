@@ -1,7 +1,7 @@
 package com.loopers.domain.product;
 
-import com.loopers.application.product.PageResponse;
 import com.loopers.application.product.ProductResponse;
+import org.springframework.data.domain.Page;
 
 import java.util.Optional;
 
@@ -11,7 +11,7 @@ import java.util.Optional;
  * Infrastructure 계층에서 구체적인 캐시 기술(Redis 등)을 구현한다.
  */
 public interface ProductCacheRepository {
-    
+
     /**
      * 상품 목록 캐시 조회
      * @param brandId 브랜드 ID (null 가능)
@@ -20,9 +20,10 @@ public interface ProductCacheRepository {
      * @param size 페이지 크기
      * @return 캐시된 상품 목록 (없으면 Optional.empty())
      */
-    Optional<PageResponse<ProductResponse>> getProductList(
-        Long brandId, String sort, int page, int size);
-    
+    Optional<Page<ProductResponse>> getProductList(
+        Long brandId, String sort, int page, int size
+    );
+
     /**
      * 상품 목록 캐시 저장
      * @param brandId 브랜드 ID (null 가능)
@@ -32,8 +33,9 @@ public interface ProductCacheRepository {
      * @param productPage 저장할 상품 목록 데이터
      */
     void saveProductList(
-        Long brandId, String sort, int page, int size, 
-        PageResponse<ProductResponse> productPage);
+        Long brandId, String sort, int page, int size,
+        Page<ProductResponse> productPage
+    );
     
     /**
      * 상품 상세 캐시 조회
