@@ -1,39 +1,25 @@
 package com.loopers.application.product;
 
-import com.loopers.domain.product.Product;
-import com.loopers.domain.product.ProductCacheRepository;
-import com.loopers.domain.product.ProductRepository;
-import com.loopers.domain.product.ProductSpecs;
-import com.loopers.domain.product.ProductStatus;
+import com.loopers.domain.product.*;
 import com.loopers.support.error.CoreException;
 import com.loopers.support.error.ErrorType;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class ProductApplicationService {
+public class ProductQueryService {
 
     private final ProductRepository productRepository;
     private final ProductCacheRepository productCacheRepository;
-
-    @Transactional
-    public ProductResponse create(Long brandId, String name, String description, long price, int stock, int maxOrderQuantity, ProductStatus
-            status) {
-        // 도메인 객체 생성을 위임
-        Product product = Product.of(brandId, name, description, price, stock, maxOrderQuantity, status);
-        Product savedProduct = productRepository.save(product);
-
-        return ProductResponse.from(savedProduct);
-    }
 
     @Transactional(readOnly = true)
     public PageResponse<ProductResponse> searchProducts(Long brandId, String sort, int page, int size) {
@@ -64,15 +50,6 @@ public class ProductApplicationService {
         productCacheRepository.saveProductList(brandId, sort, page, size, responseDto);
 
         return responseDto;
-    }
-
-    // ID 목록 순서에 맞게 Product 리스트를 정렬하고 Page 객체로 재구성하는 헬퍼 메소드
-    private Page<Product> reorderProductsAndCreatePage(List<Product> products, List<Long> sortedIds, Page<Long> idPage) {
-        Map<Long, Product> productMap = products.stream().collect(Collectors.toMap(Product::getId, p -> p));
-        List<Product> sortedProducts = sortedIds.stream()
-                .map(productMap::get)
-                .collect(Collectors.toList());
-        return new PageImpl<>(sortedProducts, idPage.getPageable(), idPage.getTotalElements());
     }
 
     @Transactional(readOnly = true)

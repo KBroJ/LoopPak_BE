@@ -5,7 +5,8 @@ import com.loopers.application.brand.BrandInfo;
 import com.loopers.application.coupon.CouponApplicationService;
 import com.loopers.application.coupon.CouponInfo;
 import com.loopers.application.points.PointApplicationService;
-import com.loopers.application.product.ProductApplicationService;
+import com.loopers.application.product.ProductFacade;
+import com.loopers.application.product.ProductQueryService;
 import com.loopers.application.product.ProductResponse;
 import com.loopers.application.users.UserApplicationService;
 import com.loopers.application.users.UserInfo;
@@ -46,7 +47,7 @@ class OrderConcurrencyTest {
     @Autowired
     private BrandApplicationService brandAppService;
     @Autowired
-    private ProductApplicationService productAppService;
+    private ProductFacade productFacade;
     @Autowired
     private OrderApplicationService orderAppService;
     @Autowired
@@ -65,7 +66,7 @@ class OrderConcurrencyTest {
         // arrange
         UserInfo user = userAppService.saveUser("user", "M", "2000-01-01", "c-user@test.com");
         BrandInfo brand = brandAppService.create("브랜드", "설명", true);
-        ProductResponse product = productAppService.create(brand.id(), "상품", "", 5000, 100, 10, ProductStatus.ACTIVE);
+        ProductResponse product = productFacade.create(brand.id(), "상품", "", 5000, 100, 10, ProductStatus.ACTIVE);
         pointAppService.chargePoint(user.userId(), 100000L);
 
         // 2. 모든 스레드가 사용할 단 하나의 쿠폰을 생성하고 사용자에게 발급합니다.
@@ -117,7 +118,7 @@ class OrderConcurrencyTest {
         // 1. 테스트용 사용자, 상품, 포인트를 생성합니다.
         UserInfo user = userAppService.saveUser("pointUser", "F", "2000-01-01", "p-user@test.com");
         BrandInfo brand = brandAppService.create("브랜드", "설명", true);
-        ProductResponse product = productAppService.create(brand.id(), "상품", "", 1000, 100, 10, ProductStatus.ACTIVE);
+        ProductResponse product = productFacade.create(brand.id(), "상품", "", 1000, 100, 10, ProductStatus.ACTIVE);
         long initialPoints = 50000L;
         pointAppService.chargePoint(user.userId(), initialPoints);
 
@@ -159,7 +160,7 @@ class OrderConcurrencyTest {
         // arrange
         int initialStock = 100;
         BrandInfo brand = brandAppService.create("브랜드", "설명", true);
-        ProductResponse product = productAppService.create(brand.id(), "재고테스트상품", "", 1000, initialStock, 10, ProductStatus.ACTIVE);
+        ProductResponse product = productFacade.create(brand.id(), "재고테스트상품", "", 1000, initialStock, 10, ProductStatus.ACTIVE);
 
         int threadCount = 10;
         List<UserInfo> users = new ArrayList<>();

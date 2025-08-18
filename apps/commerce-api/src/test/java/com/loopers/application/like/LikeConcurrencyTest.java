@@ -2,7 +2,7 @@ package com.loopers.application.like;
 
 import com.loopers.application.brand.BrandApplicationService;
 import com.loopers.application.brand.BrandInfo;
-import com.loopers.application.product.ProductApplicationService;
+import com.loopers.application.product.ProductFacade;
 import com.loopers.application.product.ProductResponse;
 import com.loopers.application.users.UserApplicationService;
 import com.loopers.application.users.UserInfo;
@@ -37,7 +37,7 @@ class LikeConcurrencyTest {
     @Autowired
     private LikeApplicationService likeAppService;
     @Autowired
-    private ProductApplicationService productAppService;
+    private ProductFacade productFacade;
     @Autowired
     private BrandApplicationService brandAppService;
     @Autowired
@@ -52,7 +52,7 @@ class LikeConcurrencyTest {
     @BeforeEach
     void setUp() {
         BrandInfo brand = brandAppService.create("브랜드", "설명", true);
-        product = productAppService.create(brand.id(), "상품", "", 1000, 100, 10, ProductStatus.ACTIVE);
+        product = productFacade.create(brand.id(), "상품", "", 1000, 100, 10, ProductStatus.ACTIVE);
 
         users = new ArrayList<>();
         for (int i = 0; i < 100; i++) {

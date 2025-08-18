@@ -21,7 +21,9 @@ import static org.junit.jupiter.api.Assertions.*;
 class ProductUseCaseIntegrationTest {
 
     @Autowired
-    private ProductApplicationService productAppService;
+    private ProductFacade productFacade;
+    @Autowired
+    private ProductQueryService productQueryService;
     @Autowired
     private BrandApplicationService brandAppService;
     @Autowired
@@ -51,7 +53,7 @@ class ProductUseCaseIntegrationTest {
         @Test
         void returnProductInfo_whenCreateProduct() {
             // arrange & act
-            ProductResponse result = productAppService.create(
+            ProductResponse result = productFacade.create(
                     brandAId, "상품명", "설명", 100, 10, 10, ProductStatus.ACTIVE
             );
 
@@ -72,17 +74,17 @@ class ProductUseCaseIntegrationTest {
         @Test
         void returnAllActiveProducts_whenSearchWithDefaultConditions() throws InterruptedException {
             // arrange
-            ProductResponse p1 = productAppService.create(brandAId, "활성상품1", "설명", 100, 10, 10, ProductStatus.ACTIVE);
+            ProductResponse p1 = productFacade.create(brandAId, "활성상품1", "설명", 100, 10, 10, ProductStatus.ACTIVE);
             Thread.sleep(10); // 생성 시간차를 두기 위함
-            ProductResponse p2 = productAppService.create(brandBId, "활성상품2", "설명", 200, 10, 10, ProductStatus.ACTIVE);
-            productAppService.create(brandAId, "비활성상품", "설명", 300, 10, 10, ProductStatus.INACTIVE);
+            ProductResponse p2 = productFacade.create(brandBId, "활성상품2", "설명", 200, 10, 10, ProductStatus.ACTIVE);
+            productFacade.create(brandAId, "비활성상품", "설명", 300, 10, 10, ProductStatus.INACTIVE);
 
             likeAppService.like(1L, p1.productId(), LikeType.PRODUCT);
             likeAppService.like(2L, p1.productId(), LikeType.PRODUCT);
             likeAppService.like(1L, p2.productId(), LikeType.PRODUCT);
 
             // act
-            PageResponse<ProductResponse> result = productAppService.searchProducts(null, "latest", 0, 10);
+            PageResponse<ProductResponse> result = productQueryService.searchProducts(null, "latest", 0, 10);
             List<ProductResponse> content = result.content();
 
             // assert
@@ -99,12 +101,12 @@ class ProductUseCaseIntegrationTest {
         @Test
         void returnSortedProducts_whenSearchWithPriceAsc() {
             // arrange
-            productAppService.create(brandAId, "중간가격상품", "설명", 200, 10, 10, ProductStatus.ACTIVE);
-            productAppService.create(brandAId, "최고가상품", "설명", 300, 10, 10, ProductStatus.ACTIVE);
-            productAppService.create(brandAId, "최저가상품", "설명", 100, 10, 10, ProductStatus.ACTIVE);
+            productFacade.create(brandAId, "중간가격상품", "설명", 200, 10, 10, ProductStatus.ACTIVE);
+            productFacade.create(brandAId, "최고가상품", "설명", 300, 10, 10, ProductStatus.ACTIVE);
+            productFacade.create(brandAId, "최저가상품", "설명", 100, 10, 10, ProductStatus.ACTIVE);
 
             // act
-            PageResponse<ProductResponse> resultPage = productAppService.searchProducts(null, "price_asc", 0, 10);
+            PageResponse<ProductResponse> resultPage = productQueryService.searchProducts(null, "price_asc", 0, 10);
 
             // assert
             assertThat(resultPage.content())
@@ -115,9 +117,9 @@ class ProductUseCaseIntegrationTest {
         @Test
         void returnSortedProducts_whenSearchWithLikesDesc() {
             // arrange
-            ProductResponse p1 = productAppService.create(brandAId, "좋아요1개", "설명", 100, 10, 10, ProductStatus.ACTIVE);
-            ProductResponse p2 = productAppService.create(brandAId, "좋아요3개", "설명", 100, 10, 10, ProductStatus.ACTIVE);
-            ProductResponse p3 = productAppService.create(brandAId, "좋아요2개", "설명", 100, 10, 10, ProductStatus.ACTIVE);
+            ProductResponse p1 = productFacade.create(brandAId, "좋아요1개", "설명", 100, 10, 10, ProductStatus.ACTIVE);
+            ProductResponse p2 = productFacade.create(brandAId, "좋아요3개", "설명", 100, 10, 10, ProductStatus.ACTIVE);
+            ProductResponse p3 = productFacade.create(brandAId, "좋아요2개", "설명", 100, 10, 10, ProductStatus.ACTIVE);
 
             likeAppService.like(1L, p2.productId(), LikeType.PRODUCT);
             likeAppService.like(2L, p2.productId(), LikeType.PRODUCT);
@@ -127,7 +129,7 @@ class ProductUseCaseIntegrationTest {
             likeAppService.like(1L, p1.productId(), LikeType.PRODUCT);
 
             // act
-            PageResponse<ProductResponse> result = productAppService.searchProducts(null, "likes_desc", 0, 10);
+            PageResponse<ProductResponse> result = productQueryService.searchProducts(null, "likes_desc", 0, 10);
             List<ProductResponse> content = result.content();
 
             // assert
@@ -140,15 +142,15 @@ class ProductUseCaseIntegrationTest {
         @DisplayName("성공: 상품 목록 조회 시 캐시가 동작한다.")
         void cacheWorks_whenSearchProducts() {
             // arrange
-            productAppService.create(brandAId, "상품1", "설명", 100, 10, 10, ProductStatus.ACTIVE);
-            productAppService.create(brandAId, "상품2", "설명", 200, 10, 10, ProductStatus.ACTIVE);
+            productFacade.create(brandAId, "상품1", "설명", 100, 10, 10, ProductStatus.ACTIVE);
+            productFacade.create(brandAId, "상품2", "설명", 200, 10, 10, ProductStatus.ACTIVE);
 
             // act & assert
             System.out.println("\n--- 첫 번째 목록 호출 (Cache Miss 예상) ---");
-            productAppService.searchProducts(brandAId, "latest", 0, 10);
+            productQueryService.searchProducts(brandAId, "latest", 0, 10);
 
             System.out.println("\n--- 두 번째 목록 호출 (Cache Hit 예상) ---");
-            productAppService.searchProducts(brandAId, "latest", 0, 10);
+            productQueryService.searchProducts(brandAId, "latest", 0, 10);
 
         }
     }
@@ -160,12 +162,12 @@ class ProductUseCaseIntegrationTest {
         @Test
         void returnProductInfo_whenFindByProductId() {
             // arrange
-            ProductResponse created = productAppService.create(brandAId, "테스트상품", "설명", 200, 10, 10, ProductStatus.ACTIVE);
+            ProductResponse created = productFacade.create(brandAId, "테스트상품", "설명", 200, 10, 10, ProductStatus.ACTIVE);
             likeAppService.like(1L, created.productId(), LikeType.PRODUCT);
             likeAppService.like(2L, created.productId(), LikeType.PRODUCT);
 
             // act
-            ProductResponse result = productAppService.getProductDetail(created.productId());
+            ProductResponse result = productQueryService.getProductDetail(created.productId());
 
             // assert
             assertAll(
@@ -179,15 +181,15 @@ class ProductUseCaseIntegrationTest {
         @DisplayName("성공: productId로 특정 상품 조회 시 캐시가 동작한다.")
         void cacheWorks_whenFindByProductId() {
             // arrange
-            ProductResponse created = productAppService.create(brandAId, "캐시테스트상품", "설명", 200, 10, 10, ProductStatus.ACTIVE);
+            ProductResponse created = productFacade.create(brandAId, "캐시테스트상품", "설명", 200, 10, 10, ProductStatus.ACTIVE);
 
             // act & assert
             System.out.println("\n--- 첫 번째 호출 (Cache Miss 예상) ---");
-            ProductResponse result1 = productAppService.getProductDetail(created.productId());
+            ProductResponse result1 = productQueryService.getProductDetail(created.productId());
             assertThat(result1.productId()).isEqualTo(created.productId());
 
             System.out.println("\n--- 두 번째 호출 (Cache Hit 예상) ---");
-            ProductResponse result2 = productAppService.getProductDetail(created.productId());
+            ProductResponse result2 = productQueryService.getProductDetail(created.productId());
             assertThat(result2.productId()).isEqualTo(created.productId());
 
         }

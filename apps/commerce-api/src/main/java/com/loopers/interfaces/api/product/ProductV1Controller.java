@@ -1,8 +1,6 @@
 package com.loopers.interfaces.api.product;
 
-import com.loopers.application.product.PageResponse;
-import com.loopers.application.product.ProductApplicationService;
-import com.loopers.application.product.ProductResponse;
+import com.loopers.application.product.*;
 import com.loopers.interfaces.api.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -20,7 +18,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProductV1Controller implements ProductV1ApiSpec {
 
-    private final ProductApplicationService productApplicationService;
+    private final ProductQueryService productQueryService;
 
     @GetMapping("/api/v1/products")
     @Override
@@ -30,7 +28,7 @@ public class ProductV1Controller implements ProductV1ApiSpec {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
-        PageResponse<ProductResponse> serviceResponse = productApplicationService.searchProducts(brandId, sort, page, size);
+        PageResponse<ProductResponse> serviceResponse = productQueryService.searchProducts(brandId, sort, page, size);
 
         // content 목록만 ProductResponse에서 ProductV1Dto.Summary로 변환
         List<ProductV1Dto.Summary> summaryList = serviceResponse.content().stream()
@@ -52,7 +50,7 @@ public class ProductV1Controller implements ProductV1ApiSpec {
     @GetMapping("/api/v1/products/{productId}")
     @Override
     public ApiResponse<ProductV1Dto.Detail> getProduct(@PathVariable Long productId) {
-        ProductResponse productResponse = productApplicationService.getProductDetail(productId);
+        ProductResponse productResponse = productQueryService.getProductDetail(productId);
 
         ProductV1Dto.Detail response = ProductV1Dto.Detail.from(productResponse);
         return ApiResponse.success(response);
