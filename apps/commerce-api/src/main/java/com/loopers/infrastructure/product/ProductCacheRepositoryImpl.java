@@ -137,8 +137,6 @@ public class ProductCacheRepositoryImpl implements ProductCacheRepository {
         
         try {
             String pattern = PRODUCT_LIST_PREFIX + "::b" + brandId + ":*";
-            // TODO: 실제 구현은 SCAN 명령어를 사용하여 패턴 매칭된 키들을 삭제
-            // 현재는 단순히 로그만 남김 (나중에 필요할 때 구현)
             log.debug("브랜드 캐시 무효화 요청: {}", pattern);
             
         } catch (Exception e) {

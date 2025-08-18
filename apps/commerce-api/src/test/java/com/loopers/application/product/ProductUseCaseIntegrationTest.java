@@ -2,7 +2,7 @@ package com.loopers.application.product;
 
 import com.loopers.application.brand.BrandApplicationService;
 import com.loopers.application.brand.BrandInfo;
-import com.loopers.application.like.LikeApplicationService;
+import com.loopers.application.like.LikeFacade;
 import com.loopers.domain.like.LikeType;
 import com.loopers.domain.product.ProductStatus;
 import com.loopers.utils.DatabaseCleanUp;
@@ -27,7 +27,7 @@ class ProductUseCaseIntegrationTest {
     @Autowired
     private BrandApplicationService brandAppService;
     @Autowired
-    private LikeApplicationService likeAppService;
+    private LikeFacade LikeFacade;
 
     @Autowired
     private DatabaseCleanUp databaseCleanUp;
@@ -79,9 +79,9 @@ class ProductUseCaseIntegrationTest {
             ProductResponse p2 = productFacade.create(brandBId, "활성상품2", "설명", 200, 10, 10, ProductStatus.ACTIVE);
             productFacade.create(brandAId, "비활성상품", "설명", 300, 10, 10, ProductStatus.INACTIVE);
 
-            likeAppService.like(1L, p1.productId(), LikeType.PRODUCT);
-            likeAppService.like(2L, p1.productId(), LikeType.PRODUCT);
-            likeAppService.like(1L, p2.productId(), LikeType.PRODUCT);
+            LikeFacade.like(1L, p1.productId(), LikeType.PRODUCT);
+            LikeFacade.like(2L, p1.productId(), LikeType.PRODUCT);
+            LikeFacade.like(1L, p2.productId(), LikeType.PRODUCT);
 
             // act
             Page<ProductResponse> result = productQueryService.searchProducts(null, "latest", 0, 10);
@@ -121,12 +121,12 @@ class ProductUseCaseIntegrationTest {
             ProductResponse p2 = productFacade.create(brandAId, "좋아요3개", "설명", 100, 10, 10, ProductStatus.ACTIVE);
             ProductResponse p3 = productFacade.create(brandAId, "좋아요2개", "설명", 100, 10, 10, ProductStatus.ACTIVE);
 
-            likeAppService.like(1L, p2.productId(), LikeType.PRODUCT);
-            likeAppService.like(2L, p2.productId(), LikeType.PRODUCT);
-            likeAppService.like(3L, p2.productId(), LikeType.PRODUCT);
-            likeAppService.like(1L, p3.productId(), LikeType.PRODUCT);
-            likeAppService.like(2L, p3.productId(), LikeType.PRODUCT);
-            likeAppService.like(1L, p1.productId(), LikeType.PRODUCT);
+            LikeFacade.like(1L, p2.productId(), LikeType.PRODUCT);
+            LikeFacade.like(2L, p2.productId(), LikeType.PRODUCT);
+            LikeFacade.like(3L, p2.productId(), LikeType.PRODUCT);
+            LikeFacade.like(1L, p3.productId(), LikeType.PRODUCT);
+            LikeFacade.like(2L, p3.productId(), LikeType.PRODUCT);
+            LikeFacade.like(1L, p1.productId(), LikeType.PRODUCT);
 
             // act
             Page<ProductResponse> result = productQueryService.searchProducts(null, "likes_desc", 0, 10);
@@ -163,8 +163,8 @@ class ProductUseCaseIntegrationTest {
         void returnProductInfo_whenFindByProductId() {
             // arrange
             ProductResponse created = productFacade.create(brandAId, "테스트상품", "설명", 200, 10, 10, ProductStatus.ACTIVE);
-            likeAppService.like(1L, created.productId(), LikeType.PRODUCT);
-            likeAppService.like(2L, created.productId(), LikeType.PRODUCT);
+            LikeFacade.like(1L, created.productId(), LikeType.PRODUCT);
+            LikeFacade.like(2L, created.productId(), LikeType.PRODUCT);
 
             // act
             ProductResponse result = productQueryService.getProductDetail(created.productId());

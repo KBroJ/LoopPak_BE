@@ -26,7 +26,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 class LikeApplicationServiceTest {
 
     @Autowired
-    private LikeApplicationService likeApplicationService;
+    private LikeFacade likeFacade;
+    @Autowired
+    private LikeQueryService LikeQueryService;
     @Autowired
     private UserApplicationService userApplicationService;
     @Autowired
@@ -66,7 +68,7 @@ class LikeApplicationServiceTest {
         void doLike_whenUserIdTargetIdLikeTypeAreProvided() {
 
             // act
-            likeApplicationService.like(userInfo.id(), product1.getId(), LikeType.PRODUCT);
+            likeFacade.like(userInfo.id(), product1.getId(), LikeType.PRODUCT);
 
             // assert
             Optional<Like> result = likeRepository.findByUserIdAndTargetIdAndType(userInfo.id(), product1.getId(), LikeType.PRODUCT);
@@ -78,10 +80,10 @@ class LikeApplicationServiceTest {
         void unLike_whenLikeExist() {
 
             // arrange
-            likeApplicationService.like(userInfo.id(), product1.getId(), LikeType.PRODUCT);
+            likeFacade.like(userInfo.id(), product1.getId(), LikeType.PRODUCT);
 
             // act
-            likeApplicationService.unlike(userInfo.id(), product1.getId(), LikeType.PRODUCT);
+            likeFacade.unlike(userInfo.id(), product1.getId(), LikeType.PRODUCT);
 
             // assert
             Optional<Like> result = likeRepository.findByUserIdAndTargetIdAndType(userInfo.id(), product1.getId(), LikeType.PRODUCT);
@@ -92,10 +94,10 @@ class LikeApplicationServiceTest {
         @DisplayName("이미 좋아요를 누른 상품에 다시 요청해도 중복 저장되지 않는다.")
         void doesNotSaveDuplicate_whenLikeIsAlreadyExists() {
             // arrange.
-            likeApplicationService.like(userInfo.id(), product1.getId(), LikeType.PRODUCT);
+            likeFacade.like(userInfo.id(), product1.getId(), LikeType.PRODUCT);
 
             // act
-            likeApplicationService.like(userInfo.id(), product1.getId(), LikeType.PRODUCT);
+            likeFacade.like(userInfo.id(), product1.getId(), LikeType.PRODUCT);
 
             // assert
             List<Like> userLikes = likeRepository.findByUserIdAndType(userInfo.id(), LikeType.PRODUCT);
@@ -106,7 +108,7 @@ class LikeApplicationServiceTest {
         @DisplayName("좋아요가 등록되면 상품의 likeCount가 1 증가한다.")
         void increaseLikeCount_whenLiked() {
             // act
-            likeApplicationService.like(userInfo.id(), product1.getId(), LikeType.PRODUCT);
+            likeFacade.like(userInfo.id(), product1.getId(), LikeType.PRODUCT);
 
             // assert
             Optional<Like> result = likeRepository.findByUserIdAndTargetIdAndType(userInfo.id(), product1.getId(), LikeType.PRODUCT);
@@ -120,10 +122,10 @@ class LikeApplicationServiceTest {
         @DisplayName("등록된 좋아요가 취소되면 상품의 likeCount가 1 감소한다.")
         void decreaseLikeCount_whenUnliked() {
             // arrange
-            likeApplicationService.like(userInfo.id(), product1.getId(), LikeType.PRODUCT);
+            likeFacade.like(userInfo.id(), product1.getId(), LikeType.PRODUCT);
 
             // act
-            likeApplicationService.unlike(userInfo.id(), product1.getId(), LikeType.PRODUCT);
+            likeFacade.unlike(userInfo.id(), product1.getId(), LikeType.PRODUCT);
 
             // assert
             Optional<Like> result = likeRepository.findByUserIdAndTargetIdAndType(userInfo.id(), product1.getId(), LikeType.PRODUCT);
@@ -147,11 +149,11 @@ class LikeApplicationServiceTest {
             Product product2 = productService.create(Product.of(brandAId, "상품명2", "설명", 200, 10, 10, ProductStatus.ACTIVE));
             productService.create(Product.of(brandAId, "좋아요 안한 상품", "설명", 300, 10, 10, ProductStatus.ACTIVE));
 
-            likeApplicationService.like(userInfo.id(), product1.getId(), LikeType.PRODUCT);
-            likeApplicationService.like(userInfo.id(), product2.getId(), LikeType.PRODUCT);
+            likeFacade.like(userInfo.id(), product1.getId(), LikeType.PRODUCT);
+            likeFacade.like(userInfo.id(), product2.getId(), LikeType.PRODUCT);
 
             // act
-            Page<Product> result = likeApplicationService.getLikedProducts(userInfo.id(), LikeType.PRODUCT,0, 10);
+            Page<Product> result = LikeQueryService.getLikedProducts(userInfo.id(), LikeType.PRODUCT,0, 10);
 
             // assert
             assertThat(result.getTotalElements()).isEqualTo(2);
@@ -166,7 +168,7 @@ class LikeApplicationServiceTest {
             // arrange
 
             // act
-            Page<Product> result = likeApplicationService.getLikedProducts(userInfo.id(), LikeType.PRODUCT, 0, 10);
+            Page<Product> result = LikeQueryService.getLikedProducts(userInfo.id(), LikeType.PRODUCT, 0, 10);
 
             // assert
             assertThat(result.getTotalElements()).isEqualTo(0);

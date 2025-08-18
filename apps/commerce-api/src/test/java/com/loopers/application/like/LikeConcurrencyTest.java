@@ -35,7 +35,7 @@ class LikeConcurrencyTest {
     @Autowired
     private UserApplicationService userAppService;
     @Autowired
-    private LikeApplicationService likeAppService;
+    private LikeFacade likeFacade;
     @Autowired
     private ProductFacade productFacade;
     @Autowired
@@ -78,7 +78,7 @@ class LikeConcurrencyTest {
             final UserInfo user = users.get(i);
             executorService.submit(() -> {
                 try {
-                    likeAppService.like(user.id(), product.productId(), LikeType.PRODUCT);
+                    likeFacade.like(user.id(), product.productId(), LikeType.PRODUCT);
                 } finally {
                     latch.countDown();
                 }
@@ -96,7 +96,7 @@ class LikeConcurrencyTest {
     void optimisticLock_preventsConcurrentUnlike() throws InterruptedException {
         // arrange
         // 모든 스레드가 공격할 단 하나의 '좋아요' 데이터를 생성합니다.
-        likeAppService.like(users.get(0).id(), product.productId(), LikeType.PRODUCT);
+        likeFacade.like(users.get(0).id(), product.productId(), LikeType.PRODUCT);
 
         int threadCount = 10;
         ExecutorService executorService = Executors.newFixedThreadPool(10);
@@ -109,7 +109,7 @@ class LikeConcurrencyTest {
         for (int i = 0; i < threadCount; i++) {
             executorService.submit(() -> {
                 try {
-                    likeAppService.unlike(users.get(0).id(), product.productId(), LikeType.PRODUCT);
+                    likeFacade.unlike(users.get(0).id(), product.productId(), LikeType.PRODUCT);
                     successCount.incrementAndGet(); // 성공 시 카운트 증가
                 } catch (ObjectOptimisticLockingFailureException e) {
                     // 낙관적 락 충돌이 발생하면 이곳으로 들어옵니다.

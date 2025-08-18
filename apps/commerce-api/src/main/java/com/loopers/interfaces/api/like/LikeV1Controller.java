@@ -1,6 +1,7 @@
 package com.loopers.interfaces.api.like;
 
-import com.loopers.application.like.LikeApplicationService;
+import com.loopers.application.like.LikeFacade;
+import com.loopers.application.like.LikeQueryService;
 import com.loopers.domain.like.LikeType;
 import com.loopers.domain.product.Product;
 import com.loopers.interfaces.api.ApiResponse;
@@ -13,7 +14,8 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/like/products")
 public class LikeV1Controller implements LikeV1ApiSpec {
 
-    private final LikeApplicationService likeApplicationService;
+    private final LikeFacade likeFacade;
+    private final LikeQueryService likeQueryService;
 
     @PostMapping("/{productId}")
     @Override
@@ -21,7 +23,7 @@ public class LikeV1Controller implements LikeV1ApiSpec {
             @RequestHeader("X-USER-ID") Long userId,
             @PathVariable Long productId) {
 
-        likeApplicationService.like(userId, productId, LikeType.PRODUCT);
+        likeFacade.like(userId, productId, LikeType.PRODUCT);
         return ApiResponse.success();
     }
 
@@ -31,7 +33,7 @@ public class LikeV1Controller implements LikeV1ApiSpec {
             @RequestHeader("X-USER-ID") Long userId,
             @PathVariable Long productId) {
 
-        likeApplicationService.unlike(userId, productId, LikeType.PRODUCT);
+        likeFacade.unlike(userId, productId, LikeType.PRODUCT);
         return ApiResponse.success();
     }
 
@@ -42,7 +44,7 @@ public class LikeV1Controller implements LikeV1ApiSpec {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
-        Page<Product> likedProducts = likeApplicationService.getLikedProducts(userId, LikeType.PRODUCT,page, size);
+        Page<Product> likedProducts = likeQueryService.getLikedProducts(userId, LikeType.PRODUCT,page, size);
         Page<LikeV1Dto.Product> response = likedProducts.map(LikeV1Dto.Product::from);
 
         return ApiResponse.success(response);
