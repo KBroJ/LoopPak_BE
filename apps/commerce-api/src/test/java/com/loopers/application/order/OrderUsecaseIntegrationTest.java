@@ -6,8 +6,6 @@ import com.loopers.application.points.PointApplicationService;
 import com.loopers.application.users.UserApplicationService;
 import com.loopers.application.users.UserInfo;
 import com.loopers.domain.order.Order;
-import com.loopers.domain.order.OrderItemRequest;
-import com.loopers.domain.order.OrderRequest;
 import com.loopers.domain.order.OrderStatus;
 import com.loopers.domain.points.Point;
 import com.loopers.domain.product.Product;
@@ -29,8 +27,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class OrderUsecaseIntegrationTest {
 
     @Autowired
-    private OrderApplicationService orderAppService;
-
+    private OrderFacade orderFacade;
+    @Autowired
+    private OrderQueryService orderQueryService;
     @Autowired
     private UserApplicationService userAppService;
     @Autowired
@@ -57,11 +56,16 @@ class OrderUsecaseIntegrationTest {
 
         pointAppService.chargePoint(testUser.userId(), 100000L);
 
-        OrderRequest orderRequest = new OrderRequest(List.of(
-                new OrderItemRequest(product1.getId(), 2),
-                new OrderItemRequest(product2.getId(), 1)
-        ), null);
-        savedOrder = orderAppService.placeOrder(testUser.id(), orderRequest);
+        OrderInfo orderInfo = new OrderInfo(
+            List.of(
+                new OrderItemInfo(product1.getId(), 2),
+                new OrderItemInfo(product2.getId(), 1)
+            ),
+            null,
+            "POINT", // 기본 결제 방식은 포인트
+            null                // 포인트 결제시 PaymentMethod는 null
+        );
+        savedOrder = orderFacade.placeOrder(testUser.id(), orderInfo);
     }
 
     @AfterEach
@@ -80,12 +84,15 @@ class OrderUsecaseIntegrationTest {
             long initialPoints = pointAppService.getPointByUserId(testUser.id()).getPoint();
             int initialStock = productService.productInfo(product1.getId()).get().getStock();
 
-            OrderRequest orderRequest = new OrderRequest(List.of(
-                    new OrderItemRequest(product1.getId(), 2)
-            ), null);
+            OrderInfo orderInfo = new OrderInfo(
+                List.of(new OrderItemInfo(product1.getId(), 2)),
+                null,
+                "POINT", // 포인트 결제
+                null                // 포인트 결제시 PaymentMethod는 null
+            );
 
             // act
-            Order newOrder = orderAppService.placeOrder(testUser.id(), orderRequest);
+            Order newOrder = orderFacade.placeOrder(testUser.id(), orderInfo);
 
             // assert
             Product updatedProduct = productService.productInfo(product1.getId()).get();
@@ -103,12 +110,15 @@ class OrderUsecaseIntegrationTest {
         void failsAndRollsBack_whenStockIsInsufficient() {
             // arrange
             long initialPoints = pointAppService.getPointByUserId(testUser.id()).getPoint();
-            OrderRequest orderRequest = new OrderRequest(List.of(
-                    new OrderItemRequest(product1.getId(), 11)
-            ), null);
+            OrderInfo orderInfo = new OrderInfo(
+                List.of(new OrderItemInfo(product1.getId(), 11)),
+                null,
+                "POINT", // 포인트 결제
+                null                // 포인트 결제시 PaymentMethod는 null
+            );
 
             // act & assert
-            assertThatThrownBy(() -> orderAppService.placeOrder(testUser.id(), orderRequest))
+            assertThatThrownBy(() -> orderFacade.placeOrder(testUser.id(), orderInfo))
                     .isInstanceOf(CoreException.class)
                     .hasMessageContaining("재고가 부족합니다");
 
@@ -124,12 +134,15 @@ class OrderUsecaseIntegrationTest {
             pointAppService.chargePoint(poorUser.userId(), 15000L);
             int initialStock = productService.productInfo(product1.getId()).get().getStock();
 
-            OrderRequest orderRequest = new OrderRequest(List.of(
-                    new OrderItemRequest(product1.getId(), 2)
-            ), null);
+            OrderInfo orderRequest = new OrderInfo(
+                List.of(new OrderItemInfo(product1.getId(), 2)),
+                null,
+                "POINT", // 포인트 결제
+                null                // 포인트 결제시 PaymentMethod는 null
+            );
 
             // act & assert
-            assertThatThrownBy(() -> orderAppService.placeOrder(poorUser.id(), orderRequest))
+            assertThatThrownBy(() -> orderFacade.placeOrder(poorUser.id(), orderRequest))
                     .isInstanceOf(CoreException.class)
                     .hasMessageContaining("포인트가 부족합니다");
 
@@ -142,7 +155,7 @@ class OrderUsecaseIntegrationTest {
     @Test
     void getMyOrders_returnsCorrectOrderSummary() {
         // act
-        Page<OrderSummaryResponse> resultPage = orderAppService.getMyOrders(testUser.id(), 0, 10);
+        Page<OrderSummaryResponse> resultPage = orderQueryService.getMyOrders(testUser.id(), 0, 10);
 
         // assert
         assertThat(resultPage.getTotalElements()).isEqualTo(1);
@@ -150,7 +163,7 @@ class OrderUsecaseIntegrationTest {
 
         OrderSummaryResponse summary = resultPage.getContent().get(0);
         assertThat(summary.orderId()).isEqualTo(savedOrder.getId());
-        assertThat(summary.status()).isEqualTo(OrderStatus.PENDING);
+        assertThat(summary.status()).isEqualTo(OrderStatus.PAID);
         assertThat(summary.totalPrice()).isEqualTo(25000L);
         assertThat(summary.representativeProductName()).isEqualTo("상품 ID:" + product1.getId() + " 외 1건");
     }
@@ -159,7 +172,7 @@ class OrderUsecaseIntegrationTest {
     @Test
     void getOrderDetail_returnsCorrectDetailInfo() {
         // act
-        OrderDetailResponse result = orderAppService.getOrderDetail(savedOrder.getId());
+        OrderDetailResponse result = orderQueryService.getOrderDetail(savedOrder.getId());
 
         // assert
         assertThat(result.orderId()).isEqualTo(savedOrder.getId());

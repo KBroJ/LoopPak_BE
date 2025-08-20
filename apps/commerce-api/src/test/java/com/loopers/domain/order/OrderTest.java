@@ -26,12 +26,12 @@ class OrderTest {
             );
 
             // act
-            Order order = Order.of(userId, orderItems, 0L);
+            Order order = Order.of(userId, orderItems, 0L, OrderStatus.PAID);
 
             // assert
             assertAll(
                     () -> assertThat(order.getUserId()).isEqualTo(userId),
-                    () -> assertThat(order.getStatus()).isEqualTo(OrderStatus.PENDING),
+                    () -> assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID),
                     () -> assertThat(order.getOrderItems()).hasSize(2)
             );
         }
@@ -50,7 +50,7 @@ class OrderTest {
                     OrderItem.of(1L, 2, 10000),
                     OrderItem.of(2L, 3, 5000)
             );
-            Order order = Order.of(userId, orderItems, 0L);
+            Order order = Order.of(userId, orderItems, 0L, OrderStatus.PAID);
 
             // act
             long actualTotalPrice = order.calculateTotalPrice();
@@ -67,7 +67,7 @@ class OrderTest {
             List<OrderItem> orderItems = List.of(
                     OrderItem.of(101L, 5, 1000)
             );
-            Order order = Order.of(userId, orderItems, 0L);
+            Order order = Order.of(userId, orderItems, 0L, OrderStatus.PAID);
 
             // act
             long actualTotalPrice = order.calculateTotalPrice();
@@ -82,7 +82,7 @@ class OrderTest {
             // arrange
             Long userId = 1L;
             List<OrderItem> orderItems = List.of();
-            Order order = Order.of(userId, orderItems, 0L);
+            Order order = Order.of(userId, orderItems, 0L, OrderStatus.PAID);
 
             // act
             long actualTotalPrice = order.calculateTotalPrice();

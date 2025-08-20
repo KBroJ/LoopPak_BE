@@ -2,6 +2,9 @@ package com.loopers.application.order;
 
 import com.loopers.domain.coupon.*;
 import com.loopers.domain.order.*;
+import com.loopers.domain.payment.CardType;
+import com.loopers.domain.payment.PaymentMethod;
+import com.loopers.domain.payment.PaymentType;
 import com.loopers.domain.points.Point;
 import com.loopers.domain.points.PointRepository;
 import com.loopers.domain.product.Product;
@@ -9,10 +12,6 @@ import com.loopers.domain.product.ProductRepository;
 import com.loopers.support.error.CoreException;
 import com.loopers.support.error.ErrorType;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,7 +21,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class OrderApplicationService {
+public class OrderFacade {
 
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
@@ -31,10 +30,10 @@ public class OrderApplicationService {
     private final CouponRepository couponRepository;
 
     @Transactional
-    public Order placeOrder(Long userId, OrderRequest orderRequest) {
+    public Order placeOrder(Long userId, OrderInfo orderInfo) {
 
         // === 1. 데이터 조회 ===
-        List<Long> productIds = orderRequest.items().stream().map(OrderItemRequest::productId).toList();
+        List<Long> productIds = orderInfo.items().stream().map(OrderItemInfo::productId).toList();
         List<Product> products =
 //                productRepository.findAllById(productIds);
                 productRepository.findAllByIdWithLock(productIds);
@@ -49,8 +48,8 @@ public class OrderApplicationService {
             throw new CoreException(ErrorType.NOT_FOUND, "일부 상품 정보를 찾을 수 없습니다.");
         }
 
-        Map<Long, Integer> quantityMap = orderRequest.items().stream()
-                .collect(Collectors.toMap(OrderItemRequest::productId, OrderItemRequest::quantity));
+        Map<Long, Integer> quantityMap = orderInfo.items().stream()
+                .collect(Collectors.toMap(OrderItemInfo::productId, OrderItemInfo::quantity));
 
         // 주문 아이템 생성 및 원가 계산
         List<OrderItem> orderItems = products.stream()
@@ -64,11 +63,11 @@ public class OrderApplicationService {
 
         // === 3. 쿠폰 로직 처리 ===
         long discountAmount = 0L;
-        if (orderRequest.couponId() != null) {
+        if (orderInfo.couponId() != null) {
 
             // 3-1. 사용자가 보유한 유효한 쿠폰인지 확인
 //            UserCoupon userCoupon = userCouponRepository.findByIdAndUserId(orderRequest.couponId(), userId)
-            UserCoupon userCoupon = userCouponRepository.findByIdAndUserIdWithLock(orderRequest.couponId(), userId)
+            UserCoupon userCoupon = userCouponRepository.findByIdAndUserIdWithLock(orderInfo.couponId(), userId)
                     .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "사용할 수 없는 쿠폰입니다."));
 
             // 3-2. 쿠폰 정책(템플릿) 정보 조회
@@ -84,37 +83,33 @@ public class OrderApplicationService {
 
         }
 
-        // === 4. 최종 결제 금액 계산 및 포인트 사용 ===
+        // === 4. 최종 결제 금액 계산 ===
         long finalPrice = originalTotalPrice - discountAmount;
-        userPoint.use(finalPrice);
 
-        // === 5. 주문 생성 및 저장 ===
-        Order newOrder = Order.of(userId, orderItems, discountAmount);
+        // === 5. 결제 방식 처리 ===
+        PaymentType paymentType = PaymentType.valueOf(
+            orderInfo.paymentType() != null ? orderInfo.paymentType() : "POINT"
+        );
+        PaymentMethod paymentMethod = null;
+
+        if (paymentType == PaymentType.CARD && orderInfo.cardInfo() != null) {
+            paymentMethod = PaymentMethod.of(
+                    CardType.valueOf(orderInfo.cardInfo().cardType()),
+                    orderInfo.cardInfo().cardNo()
+            );
+        }
+
+        // 포인트 결제는 즉시 처리
+        if (paymentType == PaymentType.POINT) {
+            userPoint.use(finalPrice);
+        }
+
+        // 결제 방법에 따른 주문 상태 결정
+        OrderStatus orderStatus = (paymentType == PaymentType.POINT) ? OrderStatus.PAID : OrderStatus.PENDING;
+
+        // === 6. 주문 생성 및 저장 ===
+        Order newOrder = Order.of(userId, orderItems, discountAmount, orderStatus);
         return orderRepository.save(newOrder);
-    }
-
-    @Transactional(readOnly = true)
-    public Page<OrderSummaryResponse> getMyOrders(Long userId, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<Order> orderPage = orderRepository.findByUserId(userId, pageable);
-        // DTO 변환 로직은 여기에 직접 두거나, 별도 Mapper 클래스로 분리할 수 있습니다.
-        return orderPage.map(OrderSummaryResponse::from);
-    }
-
-    @Transactional(readOnly = true)
-    public OrderDetailResponse getOrderDetail(Long orderId) {
-        Order order = orderRepository.findByIdWithItems(orderId)
-                .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "주문 정보를 찾을 수 없습니다."));
-
-        List<Long> productIds = order.getOrderItems().stream()
-                .map(OrderItem::getProductId)
-                .toList();
-
-        // Product 정보를 Map 형태로 한번에 조회
-        Map<Long, Product> productMap = productRepository.findAllById(productIds).stream()
-                .collect(Collectors.toMap(Product::getId, product -> product));
-
-        return OrderDetailResponse.of(order, productMap);
     }
 
 }

@@ -6,7 +6,6 @@ import com.loopers.application.coupon.CouponApplicationService;
 import com.loopers.application.coupon.CouponInfo;
 import com.loopers.application.points.PointApplicationService;
 import com.loopers.application.product.ProductFacade;
-import com.loopers.application.product.ProductQueryService;
 import com.loopers.application.product.ProductResponse;
 import com.loopers.application.users.UserApplicationService;
 import com.loopers.application.users.UserInfo;
@@ -88,7 +87,7 @@ class OrderV1ApiE2ETest {
                 new OrderV1Dto.OrderItemRequest(product1.productId(), 2),
                 new OrderV1Dto.OrderItemRequest(product2.productId(), 1)
         );
-        OrderV1Dto.OrderRequest request = new OrderV1Dto.OrderRequest(items, availableCoupon.getId());
+        OrderV1Dto.OrderInfo request = new OrderV1Dto.OrderInfo(items, availableCoupon.getId(), "POINT", null);
 
         // 2. API 요청 전 초기 상태 기록
         long initialPoints = pointRepository.findByUserId(testUser.id()).get().getPoint();
@@ -131,7 +130,7 @@ class OrderV1ApiE2ETest {
         List<OrderV1Dto.OrderItemRequest> items = List.of(
                 new OrderV1Dto.OrderItemRequest(product1.productId(), 21)
         );
-        OrderV1Dto.OrderRequest request = new OrderV1Dto.OrderRequest(items, availableCoupon.getId());
+        OrderV1Dto.OrderInfo request = new OrderV1Dto.OrderInfo(items, availableCoupon.getId(), "POINT", null);
 
         // 2. API 요청 전 초기 상태 기록
         long initialPoints = pointRepository.findByUserId(testUser.id()).get().getPoint();

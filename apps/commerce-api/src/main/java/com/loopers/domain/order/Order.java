@@ -28,15 +28,15 @@ public class Order extends BaseEntity {
     @Column(nullable = false)
     private long discountAmount = 0L;
 
-    private Order(Long userId, List<OrderItem> orderItems, long discountAmount) {
+    private Order(Long userId, List<OrderItem> orderItems, long discountAmount, OrderStatus status) {
         this.userId = userId;
-        this.status = OrderStatus.PENDING;
         this.discountAmount = discountAmount;
+        this.status = status;
         orderItems.forEach(this::addOrderItem);
     }
 
-    public static Order of(Long userId, List<OrderItem> orderItems, long discountAmount) {
-        return new Order(userId, orderItems, discountAmount);
+    public static Order of(Long userId, List<OrderItem> orderItems, long discountAmount, OrderStatus status) {
+        return new Order(userId, orderItems, discountAmount, status);
     }
 
     private void addOrderItem(OrderItem orderItem) {
