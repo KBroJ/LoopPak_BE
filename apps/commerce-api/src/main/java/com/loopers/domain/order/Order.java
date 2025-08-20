@@ -58,4 +58,12 @@ public class Order extends BaseEntity {
         return originalTotalPrice - discountAmount;
     }
 
+    public void complete() {
+        this.status = OrderStatus.PAID;
+    }
+
+    public void cancel(String reason) {
+        this.status = OrderStatus.CANCELLED;
+    }
+
 }

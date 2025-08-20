@@ -1,9 +1,12 @@
 package com.loopers.application.order;
 
+import com.loopers.application.payment.PaymentFacade;
+import com.loopers.application.payment.PaymentResult;
 import com.loopers.domain.coupon.*;
 import com.loopers.domain.order.*;
 import com.loopers.domain.payment.CardType;
 import com.loopers.domain.payment.PaymentMethod;
+import com.loopers.domain.payment.PaymentStatus;
 import com.loopers.domain.payment.PaymentType;
 import com.loopers.domain.points.Point;
 import com.loopers.domain.points.PointRepository;
@@ -22,6 +25,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class OrderFacade {
+
+    private final PaymentFacade paymentFacade;
 
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
@@ -86,30 +91,45 @@ public class OrderFacade {
         // === 4. 최종 결제 금액 계산 ===
         long finalPrice = originalTotalPrice - discountAmount;
 
-        // === 5. 결제 방식 처리 ===
-        PaymentType paymentType = PaymentType.valueOf(
-            orderInfo.paymentType() != null ? orderInfo.paymentType() : "POINT"
-        );
-        PaymentMethod paymentMethod = null;
+        // === 5. 주문 먼저 생성 (PENDING 상태) ===
+        Order newOrder = Order.of(userId, orderItems, discountAmount, OrderStatus.PENDING);
+        Order savedOrder = orderRepository.save(newOrder);  // PK 생성됨
 
-        if (paymentType == PaymentType.CARD && orderInfo.cardInfo() != null) {
-            paymentMethod = PaymentMethod.of(
+        // === 6. 결제 처리 (orderId와 함께) ===
+        PaymentType paymentType = PaymentType.valueOf(
+                orderInfo.paymentType() != null ? orderInfo.paymentType() : "POINT"
+        );
+        PaymentMethod paymentMethod = createPaymentMethod(orderInfo);
+
+        PaymentResult paymentResult = paymentFacade.processPayment(
+                userId,
+                savedOrder.getId(),  // 생성된 주문 ID 사용
+                finalPrice,
+                paymentType,
+                paymentMethod
+        );
+
+        // === 7. 결제 결과에 따른 주문 상태 업데이트 ===
+        if (!paymentResult.success()) {
+            savedOrder.cancel("결제 실패: " + paymentResult.message());
+        } else {
+            if (paymentResult.status() == PaymentStatus.SUCCESS) {
+                savedOrder.complete();  // PAID 상태로
+            }
+            // PENDING은 그대로 유지 (카드 결제 비동기 처리 대기)
+        }
+
+        return savedOrder;
+    }
+
+    private PaymentMethod createPaymentMethod(OrderInfo orderInfo) {
+        if (orderInfo.cardInfo() != null) {
+            return PaymentMethod.of(
                     CardType.valueOf(orderInfo.cardInfo().cardType()),
                     orderInfo.cardInfo().cardNo()
             );
         }
-
-        // 포인트 결제는 즉시 처리
-        if (paymentType == PaymentType.POINT) {
-            userPoint.use(finalPrice);
-        }
-
-        // 결제 방법에 따른 주문 상태 결정
-        OrderStatus orderStatus = (paymentType == PaymentType.POINT) ? OrderStatus.PAID : OrderStatus.PENDING;
-
-        // === 6. 주문 생성 및 저장 ===
-        Order newOrder = Order.of(userId, orderItems, discountAmount, orderStatus);
-        return orderRepository.save(newOrder);
+        return null;
     }
 
 }
