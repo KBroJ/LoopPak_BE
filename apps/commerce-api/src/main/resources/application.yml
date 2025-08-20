@@ -56,3 +56,21 @@ spring:
 springdoc:
     api-docs:
         enabled: false
+
+# PG 연동 설정
+pg:
+    base-url: http://localhost:8082
+
+# Resilience4j 로깅 (디버깅용)
+logging:
+    level:
+        io.github.resilience4j.circuitbreaker: DEBUG
+        io.github.resilience4j.retry: DEBUG
+        com.loopers.infrastructure.pg: DEBUG
+
+# Feign 로깅
+feign:
+    client:
+        config:
+            pgClient:
+                loggerLevel: full
