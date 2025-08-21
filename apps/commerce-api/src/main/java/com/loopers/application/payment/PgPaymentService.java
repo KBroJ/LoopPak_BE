@@ -31,6 +31,9 @@ public class PgPaymentService {
                 orderId, cardType, cardNo, amount,
                 "http://localhost:8080/api/v1/payments/callback"
         );
+        
+        log.info("PG 요청 데이터 - orderId: {}, cardType: {}, cardNo: {}, amount: {}", 
+                request.orderId(), request.cardType(), request.cardNo(), request.amount());
 
         PgPaymentResponse response = pgClient.requestPayment("135135", request);
         log.info("PG 결제 요청 완료 - orderId: {}, success: {}", orderId, response.isSuccess());

@@ -23,7 +23,7 @@ public record PgPaymentRequest(
         long amount, String callbackUrl
     ) {
         return new PgPaymentRequest(
-                String.valueOf(orderId),
+                String.format("%06d", orderId),
                 cardType,
                 cardNo,
                 String.valueOf(amount),

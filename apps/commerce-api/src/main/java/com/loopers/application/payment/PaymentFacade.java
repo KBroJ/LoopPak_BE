@@ -29,19 +29,28 @@ public class PaymentFacade {
         Long userId, Long orderId, long amount,
         PaymentType paymentType, PaymentMethod paymentMethod
     ) {
+        log.info("결제 처리 시작 - userId: {}, orderId: {}, amount: {}, paymentType: {}", userId, orderId, amount, paymentType);
         try {
             switch (paymentType) {
                 case POINT -> {
+                    log.info("포인트 결제 처리");
                     return processPointPayment(userId, amount);
                 }
                 case CARD -> {
+                    log.info("카드 결제 처리");
                     return processCardPayment(userId, orderId, amount, paymentMethod);
                 }
                 default -> throw new CoreException(ErrorType.BAD_REQUEST, "지원하지 않는 결제 방식입니다.");
             }
         } catch (CoreException e) {
+            log.error("CoreException 발생 - paymentType: {}, error: {}", paymentType, e.getMessage(), e);
+            // 포인트 결제 예외는 그대로 던짐
+            if (paymentType == PaymentType.POINT) {
+                throw e;
+            }
             return PaymentResult.failure(e.getMessage());
         } catch (Exception e) {
+            log.error("일반 Exception 발생 - paymentType: {}, error: {}", paymentType, e.getMessage(), e);
             return PaymentResult.failure("결제 처리 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
@@ -56,34 +65,51 @@ public class PaymentFacade {
 
     @Transactional  // 카드 결제용 트랜잭션 (PENDING 저장까지만)
     private PaymentResult processCardPayment(Long userId, Long orderId, long amount, PaymentMethod paymentMethod) {
-        // 1. Payment 엔티티 생성 (PENDING 상태)
-        Payment payment = Payment.of(orderId, paymentMethod, amount);
-        Payment savedPayment = paymentRepository.save(payment);
+        log.info("processCardPayment 시작 - orderId: {}, amount: {}", orderId, amount);
+        try {
+            // 1. Payment 엔티티 생성 (PENDING 상태)
+            Payment payment = Payment.of(orderId, paymentMethod, amount);
+            log.info("Payment 엔티티 생성 완료 - orderId: {}", orderId);
+            Payment savedPayment = paymentRepository.save(payment);
+            log.info("Payment 저장 완료 - paymentId: {}", savedPayment.getId());
 
-        // 2. PG 결제 요청 (비동기)
-        return requestPgPayment(savedPayment.getId(), amount, paymentMethod);
+            // 2. PG 결제 요청 (비동기)
+            PaymentResult result = requestPgPayment(savedPayment, amount, paymentMethod);
+            log.info("requestPgPayment 완료 - orderId: {}, success: {}", orderId, result.success());
+            return result;
+        } catch (Exception e) {
+            log.error("processCardPayment 예외 발생 - orderId: {}, error: {}", orderId, e.getMessage(), e);
+            return PaymentResult.failure("카드 결제 처리 중 오류 발생: " + e.getMessage());
+        }
     }
 
     // PG 요청은 트랜잭션 외부에서 (또는 별도 트랜잭션)
-    private PaymentResult requestPgPayment(Long paymentId, long amount, PaymentMethod paymentMethod) {
+    private PaymentResult requestPgPayment(Payment payment, long amount, PaymentMethod paymentMethod) {
         try {
+            Long orderId = payment.getOrderId();
+            log.info("PG 결제 요청 시작 - orderId: {}, amount: {}", orderId, amount);
             PgPaymentResponse pgResponse = pgPaymentService.processPayment(
-                    paymentId,
+                    orderId,
                     paymentMethod.getCardType().name(),
                     paymentMethod.getCardNo(),
                     amount
             );
+            log.info("PG 결제 응답 받음 - orderId: {}, success: {}, status: {}", orderId, pgResponse.isSuccess(), pgResponse.getStatus());
 
             if (pgResponse.isSuccess()) {
                 String transactionKey = pgResponse.getTransactionKey();
-                log.info("카드 결제 요청 성공 - paymentId: {}, transactionKey: {}", paymentId, transactionKey);
+                log.info("카드 결제 요청 성공 - orderId: {}, transactionKey: {}", orderId, transactionKey);
+                
+                // Payment 엔티티에 transactionKey 업데이트
+                updatePaymentTransactionKey(payment, transactionKey);
+                
                 return PaymentResult.cardRequestSuccess(transactionKey);
             } else {
-                log.warn("카드 결제 요청 실패 - paymentId: {}, status: {}", paymentId, pgResponse.getStatus());
+                log.warn("카드 결제 요청 실패 - orderId: {}, status: {}", orderId, pgResponse.getStatus());
                 return PaymentResult.failure("카드 결제 요청 실패: " + pgResponse.getStatus());
             }
         } catch (Exception e) {
-            log.error("카드 결제 처리 중 예외 발생 - paymentId: {}", paymentId, e);
+            log.error("카드 결제 처리 중 예외 발생 - orderId: {}", payment.getOrderId(), e);
             return PaymentResult.failure("카드 결제 처리 중 오류 발생: " + e.getMessage());
         }
     }
@@ -134,7 +160,9 @@ public class PaymentFacade {
                 orderRepository.save(order);
             } else {
                 // 결제 실패 시 주문 취소
-                log.warn("결제 실패 확인 - orderId: {}, paymentId: {}, 검토 필요", payment.getOrderId(), payment.getId());
+                log.warn("결제 실패로 인한 주문 취소 - orderId: {}, paymentId: {}", payment.getOrderId(), payment.getId());
+                order.cancel("결제 실패");
+                orderRepository.save(order);
             }
 
         } catch (Exception e) {
@@ -251,6 +279,27 @@ public class PaymentFacade {
                     log.warn("PG 결제 실패 확인 - 주문 상태는 수동 검토 필요");
                 }
             }
+        }
+    }
+
+    /**
+     * Payment 엔티티에 transactionKey 업데이트 (별도 트랜잭션)
+     */
+    @Transactional
+    private void updatePaymentTransactionKey(Payment payment, String transactionKey) {
+        try {
+            // Payment 엔티티를 다시 조회하여 영속화 상태로 만듦
+            Payment managedPayment = paymentRepository.findById(payment.getId())
+                    .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "결제 정보를 찾을 수 없습니다: " + payment.getId()));
+            
+            // transactionKey 업데이트
+            managedPayment.updateTransactionKey(transactionKey);
+            log.info("Payment transactionKey 업데이트 완료 - paymentId: {}, transactionKey: {}", payment.getId(), transactionKey);
+            
+        } catch (Exception e) {
+            log.error("Payment transactionKey 업데이트 실패 - paymentId: {}, transactionKey: {}, error: {}", 
+                    payment.getId(), transactionKey, e.getMessage(), e);
+            throw new CoreException(ErrorType.INTERNAL_ERROR, "Payment transactionKey 업데이트 실패");
         }
     }
 

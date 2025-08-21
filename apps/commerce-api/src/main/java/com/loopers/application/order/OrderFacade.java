@@ -15,6 +15,7 @@ import com.loopers.domain.product.ProductRepository;
 import com.loopers.support.error.CoreException;
 import com.loopers.support.error.ErrorType;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrderFacade {
@@ -123,12 +125,16 @@ public class OrderFacade {
     }
 
     private PaymentMethod createPaymentMethod(OrderInfo orderInfo) {
-        if (orderInfo.cardInfo() != null) {
-            return PaymentMethod.of(
-                    CardType.valueOf(orderInfo.cardInfo().cardType()),
-                    orderInfo.cardInfo().cardNo()
+        log.info("createPaymentMethod 호출 - orderInfo.paymentMethod(): {}", orderInfo.paymentMethod());
+        if (orderInfo.paymentMethod() != null) {
+            PaymentMethod paymentMethod = PaymentMethod.of(
+                    CardType.valueOf(orderInfo.paymentMethod().cardType()),
+                    orderInfo.paymentMethod().cardNo()
             );
+            log.info("PaymentMethod 생성 완료 - cardType: {}, cardNo: {}", paymentMethod.getCardType(), paymentMethod.getCardNo());
+            return paymentMethod;
         }
+        log.warn("PaymentMethod가 null입니다 - orderInfo.paymentMethod()이 null");
         return null;
     }
 

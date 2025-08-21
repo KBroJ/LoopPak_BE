@@ -29,19 +29,19 @@ public class OrderV1Controller implements OrderV1ApiSpec {
 
         // CardInfo 변환 (있을 때만)
         CardInfo cardInfo = null;
-        if (request.cardInfo() != null) {
+        if (request.paymentMethod() != null) {
             cardInfo = new CardInfo(
-                    request.cardInfo().cardType(),
-                    request.cardInfo().cardNo()
+                    request.paymentMethod().cardType(),
+                    request.paymentMethod().cardNo()
             );
         }
 
-        // 주문 요청 객체 생성(포인트 주문)
+        // 주문 요청 객체 생성
         OrderInfo orderInfo = new OrderInfo(
             itemInfos,
             request.couponId(),
             request.paymentType() != null ? request.paymentType() : "POINT",    // 기본값 POINT
-            null                                                                // 포인트 결제시 PaymentMethod는 null
+            cardInfo                                                           // 카드 정보 전달
         );
 
         Order newOrder = orderFacade.placeOrder(userId, orderInfo);

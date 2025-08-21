@@ -6,6 +6,6 @@ public record OrderInfo(
     List<OrderItemInfo> items,
     Long couponId,
     String paymentType,     // "POINT" or "CARD"
-    CardInfo cardInfo       // 카드 결제시에만 필요
+    CardInfo paymentMethod  // 카드 결제시에만 필요
 ) {
 }

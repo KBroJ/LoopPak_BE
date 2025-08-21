@@ -15,7 +15,7 @@ public class OrderV1Dto {
             List<OrderItemRequest> items,
             Long couponId,
             String paymentType,
-            CardInfo cardInfo
+            CardInfo paymentMethod
     ) {}
     public record OrderItemRequest(Long productId, int quantity) {}
 
