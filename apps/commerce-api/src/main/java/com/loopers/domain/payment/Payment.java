@@ -54,8 +54,9 @@ public class Payment extends BaseEntity {
         this.transactionKey = transactionKey;
     }
 
-    public void markAsSuccess() {
+    public void markAsSuccess(String transactionKey) {
         this.status = PaymentStatus.SUCCESS;
+        this.transactionKey = transactionKey;
     }
 
     public void markAsFailed() {

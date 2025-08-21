@@ -84,7 +84,7 @@ public class PgPaymentService {
 
     private void updatePaymentStatus(Payment payment, PgPaymentResponse response) {
         if (response.isSuccess() && "SUCCESS".equals(response.getStatus())) {
-            payment.markAsSuccess();
+            payment.markAsSuccess(response.getTransactionKey());
             log.info("결제 성공 처리 완료 - transactionKey: {}", response.getTransactionKey());
         } else if (response.isSuccess() && "FAILED".equals(response.getStatus())) {
             payment.markAsFailed();
