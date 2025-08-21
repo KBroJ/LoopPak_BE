@@ -93,4 +93,35 @@ public class PgPaymentService {
         // PENDING 상태는 그대로 유지
     }
 
+    /**
+     * PG에서 결제 상태 조회 (PaymentFacade.checkPaymentStatus용)
+     * Resilience 패턴 적용: CircuitBreaker + Retry + Fallback
+     */
+    @CircuitBreaker(name = "pgCircuitBreaker", fallbackMethod = "fallbackGetPaymentInfo")
+    @Retry(name = "pgRetry")
+    public PgPaymentResponse getPaymentInfo(String userId, String transactionKey) {
+        log.info("PG 결제 상태 조회 시작 - transactionKey: {}, userId: {}", transactionKey, userId);
+
+        PgPaymentResponse response = pgClient.getPayment(userId, transactionKey);
+
+        log.info("PG 결제 상태 조회 완료 - transactionKey: {}, status: {}",
+                transactionKey, response.getStatus());
+
+        return response;
+    }
+
+    /**
+     * PG 상태 조회 실패 시 Fallback 처리
+     */
+    public PgPaymentResponse fallbackGetPaymentInfo(String userId, String transactionKey, Exception ex) {
+        log.error("PG 상태 조회 장애로 인한 Fallback 실행 - transactionKey: {}, error: {}",
+                transactionKey, ex.getMessage());
+
+        // Fallback: PG 상태를 알 수 없으므로 UNKNOWN 상태로 응답
+        return new PgPaymentResponse(
+                new PgPaymentResponse.Meta("FAILURE"),
+                new PgPaymentResponse.Data(transactionKey, "UNKNOWN")
+        );
+    }
+
 }

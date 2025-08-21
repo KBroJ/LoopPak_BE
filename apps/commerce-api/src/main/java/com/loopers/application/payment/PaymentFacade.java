@@ -5,7 +5,6 @@ import com.loopers.domain.order.OrderRepository;
 import com.loopers.domain.payment.*;
 import com.loopers.domain.points.Point;
 import com.loopers.domain.points.PointRepository;
-import com.loopers.infrastructure.pg.PgClient;
 import com.loopers.infrastructure.pg.PgPaymentResponse;
 import com.loopers.interfaces.api.payment.PgCallbackRequest;
 import com.loopers.support.error.CoreException;
@@ -25,7 +24,6 @@ public class PaymentFacade {
     private final OrderRepository orderRepository;
     private final PointRepository pointRepository;
     private final PaymentRepository paymentRepository;
-    private final PgClient pgClient;
 
     public PaymentResult processPayment(
         Long userId, Long orderId, long amount,
@@ -157,7 +155,7 @@ public class PaymentFacade {
                             "결제 정보를 찾을 수 없습니다: " + transactionKey));
 
             // 2. PG에서 최신 상태 조회
-            PgPaymentResponse pgResponse = pgClient.getPayment(userId, transactionKey);
+            PgPaymentResponse pgResponse = pgPaymentService.getPaymentInfo(userId, transactionKey);
 
             // 3. 상태 비교
             String ourStatus = ourPayment.getStatus().name();
@@ -195,7 +193,7 @@ public class PaymentFacade {
                             "결제 정보를 찾을 수 없습니다: " + transactionKey));
 
             // 2. PG에서 최신 상태 조회
-            PgPaymentResponse pgResponse = pgClient.getPayment(userId, transactionKey);
+            PgPaymentResponse pgResponse = pgPaymentService.getPaymentInfo(userId, transactionKey);
 
             String ourStatus = ourPayment.getStatus().name();
             String pgStatus = pgResponse.getStatus();
