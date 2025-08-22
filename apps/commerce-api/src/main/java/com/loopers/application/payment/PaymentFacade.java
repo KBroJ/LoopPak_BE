@@ -109,10 +109,11 @@ public class PaymentFacade {
             } else {
                 log.warn("카드 결제 요청 실패 - orderId: {}, status: {}", orderId, pgResponse.getStatus());
                 
-                // Fallback으로 인한 transactionKey가 있으면 업데이트
+                // Fallback으로 인한 transactionKey가 있으면 업데이트하고 fallback 응답 반환
                 if (transactionKey != null && transactionKey.startsWith("FALLBACK_")) {
                     log.info("Fallback transactionKey 업데이트 - orderId: {}, transactionKey: {}", orderId, transactionKey);
                     updatePaymentTransactionKey(payment, transactionKey);
+                    return PaymentResult.fallback(transactionKey, "PG 시스템 장애로 인한 Fallback 처리");
                 }
                 
                 return PaymentResult.failure("카드 결제 요청 실패: " + pgResponse.getStatus());

@@ -22,4 +22,8 @@ public record PaymentResult(
         return new PaymentResult(false, PaymentStatus.FAILED, message, null);
     }
 
+    public static PaymentResult fallback(String transactionId, String message) {
+        return new PaymentResult(false, PaymentStatus.FAILED, message, transactionId);
+    }
+
 }
