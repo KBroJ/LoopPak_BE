@@ -25,6 +25,7 @@ public class PaymentFacade {
     private final PointRepository pointRepository;
     private final PaymentRepository paymentRepository;
 
+    @Transactional
     public PaymentResult processPayment(
         Long userId, Long orderId, long amount,
         PaymentType paymentType, PaymentMethod paymentMethod
@@ -96,8 +97,9 @@ public class PaymentFacade {
             );
             log.info("PG 결제 응답 받음 - orderId: {}, success: {}, status: {}", orderId, pgResponse.isSuccess(), pgResponse.getStatus());
 
+            String transactionKey = pgResponse.getTransactionKey();
+            
             if (pgResponse.isSuccess()) {
-                String transactionKey = pgResponse.getTransactionKey();
                 log.info("카드 결제 요청 성공 - orderId: {}, transactionKey: {}", orderId, transactionKey);
                 
                 // Payment 엔티티에 transactionKey 업데이트
@@ -106,6 +108,13 @@ public class PaymentFacade {
                 return PaymentResult.cardRequestSuccess(transactionKey);
             } else {
                 log.warn("카드 결제 요청 실패 - orderId: {}, status: {}", orderId, pgResponse.getStatus());
+                
+                // Fallback으로 인한 transactionKey가 있으면 업데이트
+                if (transactionKey != null && transactionKey.startsWith("FALLBACK_")) {
+                    log.info("Fallback transactionKey 업데이트 - orderId: {}, transactionKey: {}", orderId, transactionKey);
+                    updatePaymentTransactionKey(payment, transactionKey);
+                }
+                
                 return PaymentResult.failure("카드 결제 요청 실패: " + pgResponse.getStatus());
             }
         } catch (Exception e) {

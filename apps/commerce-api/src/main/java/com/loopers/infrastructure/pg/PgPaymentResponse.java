@@ -33,4 +33,18 @@ public record PgPaymentResponse(
     public String getStatus() {
         return data != null ? data.status() : null;
     }
+
+    public static PgPaymentResponse success(String transactionKey, String status) {
+        return new PgPaymentResponse(
+                new Meta("SUCCESS"),
+                new Data(transactionKey, status)
+        );
+    }
+
+    public static PgPaymentResponse failure(String status) {
+        return new PgPaymentResponse(
+                new Meta("FAILED"),
+                new Data(null, status)
+        );
+    }
 }
