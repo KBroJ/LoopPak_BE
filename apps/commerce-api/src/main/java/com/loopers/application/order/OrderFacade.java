@@ -94,7 +94,7 @@ public class OrderFacade {
         long finalPrice = originalTotalPrice - discountAmount;
 
         // === 5. 주문 먼저 생성 (PENDING 상태) ===
-        Order newOrder = Order.of(userId, orderItems, discountAmount, OrderStatus.PENDING);
+        Order newOrder = Order.of(userId, orderItems, discountAmount, orderInfo.couponId(), OrderStatus.PENDING);
         Order savedOrder = orderRepository.save(newOrder);  // PK 생성됨
 
         // === 6. 결제 처리 (orderId와 함께) ===

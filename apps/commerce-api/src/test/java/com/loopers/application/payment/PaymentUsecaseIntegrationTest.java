@@ -2,11 +2,17 @@ package com.loopers.application.payment;
 
 import com.loopers.application.brand.BrandApplicationService;
 import com.loopers.application.brand.BrandInfo;
+import com.loopers.application.coupon.CouponApplicationService;
+import com.loopers.application.coupon.CouponInfo;
 import com.loopers.application.points.PointApplicationService;
 import com.loopers.application.product.ProductFacade;
 import com.loopers.application.product.ProductResponse;
 import com.loopers.application.users.UserApplicationService;
 import com.loopers.application.users.UserInfo;
+import com.loopers.domain.coupon.CouponType;
+import com.loopers.domain.coupon.UserCoupon;
+import com.loopers.domain.coupon.UserCouponRepository;
+import com.loopers.domain.coupon.UserCouponStatus;
 import com.loopers.domain.order.Order;
 import com.loopers.domain.order.OrderItem;
 import com.loopers.domain.order.OrderRepository;
@@ -14,6 +20,8 @@ import com.loopers.domain.order.OrderStatus;
 import com.loopers.domain.payment.*;
 import com.loopers.domain.points.Point;
 import com.loopers.domain.points.PointRepository;
+import com.loopers.domain.product.Product;
+import com.loopers.domain.product.ProductRepository;
 import com.loopers.domain.product.ProductStatus;
 import com.loopers.infrastructure.pg.PgClient;
 import com.loopers.infrastructure.pg.PgPaymentResponse;
@@ -27,8 +35,10 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import java.time.ZonedDateTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -45,15 +55,19 @@ class PaymentUsecaseIntegrationTest {
     @Autowired private BrandApplicationService brandAppService;
     @Autowired private ProductFacade productFacade;
     @Autowired private PointApplicationService pointAppService;
+    @Autowired private CouponApplicationService couponAppService;
     @Autowired private PaymentRepository paymentRepository;
     @Autowired private OrderRepository orderRepository;
     @Autowired private PointRepository pointRepository;
+    @Autowired private UserCouponRepository userCouponRepository;
+    @Autowired private ProductRepository productRepository;
     @Autowired private DatabaseCleanUp databaseCleanUp;
 
     @MockitoBean private PgClient pgClient;
 
     private UserInfo testUser;
     private ProductResponse testProduct;
+    private UserCoupon testCoupon;
 
     @BeforeEach
     void setUp() {
@@ -62,6 +76,13 @@ class PaymentUsecaseIntegrationTest {
 
         BrandInfo brand = brandAppService.create("테스트브랜드", "설명", true);
         testProduct = productFacade.create(brand.id(), "테스트상품", "", 10000, 20, 10, ProductStatus.ACTIVE);
+
+        // 쿠폰 생성 및 발급
+        CouponInfo couponTemplate = couponAppService.createCoupon("1000원 할인쿠폰", "테스트 쿠폰", CouponType.FIXED, 1000, 100, 
+                ZonedDateTime.now().minusDays(1), ZonedDateTime.now().plusDays(30));
+        couponAppService.issueCouponToUser(testUser.userId(), couponTemplate.id());
+        testCoupon = userCouponRepository.findByUserIdAndStatus(testUser.id(), UserCouponStatus.AVAILABLE, PageRequest.of(0, 10))
+                .getContent().get(0);
     }
 
     /**
@@ -287,6 +308,79 @@ class PaymentUsecaseIntegrationTest {
             assertThat(result).isNotNull();
             assertThat(result.transactionKey()).isEqualTo(transactionKey);
             assertThat(result.ourStatus()).isEqualTo("SUCCESS");
+        }
+    }
+
+    @DisplayName("결제 실패 시 복구 로직 테스트")
+    @Nested
+    class PaymentFailureRecoveryTest {
+
+        @DisplayName("PG 콜백으로 결제 실패 시 재고와 쿠폰이 복구된다.")
+        @Test
+        void restoreResourcesWhenPaymentFails_throughCallback() {
+            // arrange
+            Order testOrder = createTestOrderWithCoupon();
+            int orderQuantity = 2;
+            int initialStock = productRepository.productInfo(testProduct.productId()).get().getStock();
+            
+            // 재고를 수동으로 차감 (주문 과정 시뮬레이션)
+            Product product = productRepository.productInfo(testProduct.productId()).get();
+            product.decreaseStock(orderQuantity);
+            productRepository.save(product);
+            
+            // 쿠폰을 사용 상태로 변경 (주문 과정 시뮬레이션)
+            testCoupon.use();
+            userCouponRepository.save(testCoupon);
+            
+            // Payment 생성 및 저장
+            Payment payment = Payment.of(testOrder.getId(), PaymentMethod.of(CardType.SAMSUNG, "1234-1234-1234-1234"), 15000L);
+            String transactionKey = "TEST:TR:failure123";
+            payment.updateTransactionKey(transactionKey);
+            paymentRepository.save(payment);
+
+            // 사전 상태 확인
+            Product productBeforeCallback = productRepository.productInfo(testProduct.productId()).get();
+            UserCoupon couponBeforeCallback = userCouponRepository.findById(testCoupon.getId()).get();
+            
+            assertThat(productBeforeCallback.getStock()).isEqualTo(initialStock - orderQuantity); // 재고 차감됨
+            assertThat(couponBeforeCallback.getStatus()).isEqualTo(UserCouponStatus.USED); // 쿠폰 사용됨
+
+            // act: PG 결제 실패 콜백 처리
+            PgCallbackRequest failureCallback = new PgCallbackRequest(
+                    transactionKey, 
+                    testOrder.getId().toString(), 
+                    "FAILED", 
+                    15000L, 
+                    "한도 초과", 
+                    "SAMSUNG", 
+                    "2025-08-23T10:30:00Z"
+            );
+            paymentFacade.handlePaymentCallback(failureCallback);
+
+            // assert: 복구 상태 확인
+            // 1. 주문이 취소됨
+            Order orderAfterCallback = orderRepository.findByIdWithItems(testOrder.getId()).get();
+            assertThat(orderAfterCallback.getStatus()).isEqualTo(OrderStatus.CANCELLED);
+            
+            // 2. 결제가 실패 상태로 변경됨
+            Payment paymentAfterCallback = paymentRepository.findByTransactionKey(transactionKey).get();
+            assertThat(paymentAfterCallback.getStatus()).isEqualTo(PaymentStatus.FAILED);
+            
+            // 3. 재고가 복구됨
+            Product productAfterCallback = productRepository.productInfo(testProduct.productId()).get();
+            assertThat(productAfterCallback.getStock()).isEqualTo(initialStock); // 원래 재고로 복구
+            
+            // 4. 쿠폰이 복구됨
+            UserCoupon couponAfterCallback = userCouponRepository.findById(testCoupon.getId()).get();
+            assertThat(couponAfterCallback.getStatus()).isEqualTo(UserCouponStatus.AVAILABLE); // 사용 가능으로 복구
+            assertThat(couponAfterCallback.getUsedAt()).isNull(); // 사용 시간 초기화
+        }
+
+        private Order createTestOrderWithCoupon() {
+            java.util.List<OrderItem> orderItems = new java.util.ArrayList<>();
+            orderItems.add(OrderItem.of(testProduct.productId(), 2, 10000L));
+            Order order = Order.of(testUser.id(), orderItems, 1000L, testCoupon.getId(), OrderStatus.PENDING);
+            return orderRepository.save(order);
         }
     }
 }

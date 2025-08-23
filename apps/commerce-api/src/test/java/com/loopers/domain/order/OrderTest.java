@@ -32,7 +32,32 @@ class OrderTest {
             assertAll(
                     () -> assertThat(order.getUserId()).isEqualTo(userId),
                     () -> assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID),
-                    () -> assertThat(order.getOrderItems()).hasSize(2)
+                    () -> assertThat(order.getOrderItems()).hasSize(2),
+                    () -> assertThat(order.getCouponId()).isNull() // 쿠폰 없는 주문
+            );
+        }
+
+        @DisplayName("쿠폰과 함께 주문 생성 시 쿠폰 ID가 저장된다.")
+        @Test
+        void createOrder_withCoupon_savesCouponId() {
+            // arrange
+            Long userId = 1L;
+            Long couponId = 100L;
+            long discountAmount = 1000L;
+            List<OrderItem> orderItems = List.of(
+                    OrderItem.of(1L, 1, 10000)
+            );
+
+            // act
+            Order order = Order.of(userId, orderItems, discountAmount, couponId, OrderStatus.PENDING);
+
+            // assert
+            assertAll(
+                    () -> assertThat(order.getUserId()).isEqualTo(userId),
+                    () -> assertThat(order.getStatus()).isEqualTo(OrderStatus.PENDING),
+                    () -> assertThat(order.getDiscountAmount()).isEqualTo(discountAmount),
+                    () -> assertThat(order.getCouponId()).isEqualTo(couponId), // 쿠폰 ID 저장 확인
+                    () -> assertThat(order.getOrderItems()).hasSize(1)
             );
         }
     }

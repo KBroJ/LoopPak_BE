@@ -28,6 +28,9 @@ public class Order extends BaseEntity {
     @Column(nullable = false)
     private long discountAmount = 0L;
 
+    @Column(name = "coupon_id")
+    private Long couponId;  // 사용된 쿠폰 ID (복구 및 이력 추적용)
+
     private Order(Long userId, List<OrderItem> orderItems, long discountAmount, OrderStatus status) {
         this.userId = userId;
         this.discountAmount = discountAmount;
@@ -35,8 +38,20 @@ public class Order extends BaseEntity {
         orderItems.forEach(this::addOrderItem);
     }
 
+    private Order(Long userId, List<OrderItem> orderItems, long discountAmount, Long couponId, OrderStatus status) {
+        this.userId = userId;
+        this.discountAmount = discountAmount;
+        this.couponId = couponId;
+        this.status = status;
+        orderItems.forEach(this::addOrderItem);
+    }
+
     public static Order of(Long userId, List<OrderItem> orderItems, long discountAmount, OrderStatus status) {
         return new Order(userId, orderItems, discountAmount, status);
+    }
+
+    public static Order of(Long userId, List<OrderItem> orderItems, long discountAmount, Long couponId, OrderStatus status) {
+        return new Order(userId, orderItems, discountAmount, couponId, status);
     }
 
     private void addOrderItem(OrderItem orderItem) {

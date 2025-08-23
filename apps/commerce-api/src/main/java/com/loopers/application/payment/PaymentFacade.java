@@ -5,6 +5,10 @@ import com.loopers.domain.order.OrderRepository;
 import com.loopers.domain.payment.*;
 import com.loopers.domain.points.Point;
 import com.loopers.domain.points.PointRepository;
+import com.loopers.domain.coupon.UserCoupon;
+import com.loopers.domain.coupon.UserCouponRepository;
+import com.loopers.domain.product.Product;
+import com.loopers.domain.product.ProductRepository;
 import com.loopers.infrastructure.pg.PgPaymentResponse;
 import com.loopers.interfaces.api.payment.PgCallbackRequest;
 import com.loopers.support.error.CoreException;
@@ -24,6 +28,8 @@ public class PaymentFacade {
     private final OrderRepository orderRepository;
     private final PointRepository pointRepository;
     private final PaymentRepository paymentRepository;
+    private final UserCouponRepository userCouponRepository;
+    private final ProductRepository productRepository;
 
     @Transactional
     public PaymentResult processPayment(
@@ -169,10 +175,13 @@ public class PaymentFacade {
                 order.complete();
                 orderRepository.save(order);
             } else {
-                // 결제 실패 시 주문 취소
-                log.warn("결제 실패로 인한 주문 취소 - orderId: {}, paymentId: {}", payment.getOrderId(), payment.getId());
+                // 결제 실패 시 주문 취소 및 리소스 복구
+                log.warn("결제 실패로 인한 주문 취소 및 복구 처리 - orderId: {}, paymentId: {}", payment.getOrderId(), payment.getId());
                 order.cancel("결제 실패");
                 orderRepository.save(order);
+                
+                // 재고 및 쿠폰 복구
+                restoreOrderResources(order);
             }
 
         } catch (Exception e) {
@@ -180,6 +189,73 @@ public class PaymentFacade {
         }
     }
 
+    /**
+     * 주문 실패 시 재고 및 쿠폰 복구
+     */
+    private void restoreOrderResources(Order order) {
+        try {
+            log.info("주문 리소스 복구 시작 - orderId: {}", order.getId());
+            
+            // 1. 재고 복구
+            restoreProductStock(order);
+            
+            // 2. 쿠폰 복구 (사용된 쿠폰이 있는 경우)
+            if (order.getCouponId() != null) {
+                restoreCoupon(order.getCouponId());
+            }
+            
+            log.info("주문 리소스 복구 완료 - orderId: {}", order.getId());
+            
+        } catch (Exception e) {
+            log.error("주문 리소스 복구 실패 - orderId: {}, error: {}", order.getId(), e.getMessage(), e);
+            // 복구 실패는 로그만 남기고 예외를 다시 던지지 않음 (결제 처리는 계속 진행)
+        }
+    }
+
+    /**
+     * 상품 재고 복구
+     */
+    private void restoreProductStock(Order order) {
+        log.info("재고 복구 시작 - orderId: {}, 상품 수: {}", order.getId(), order.getOrderItems().size());
+        
+        order.getOrderItems().forEach(orderItem -> {
+            try {
+                Product product = productRepository.productInfo(orderItem.getProductId())
+                        .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, 
+                                "상품을 찾을 수 없습니다: " + orderItem.getProductId()));
+                
+                // 재고 복구 (주문했던 수량만큼 다시 증가)
+                product.increaseStock(orderItem.getQuantity());
+                productRepository.save(product);
+                
+                log.info("재고 복구 완료 - productId: {}, quantity: {}, 복구 후 재고: {}", 
+                        orderItem.getProductId(), orderItem.getQuantity(), product.getStock());
+                        
+            } catch (Exception e) {
+                log.error("재고 복구 실패 - productId: {}, quantity: {}, error: {}", 
+                        orderItem.getProductId(), orderItem.getQuantity(), e.getMessage(), e);
+            }
+        });
+    }
+
+    /**
+     * 쿠폰 복구
+     */
+    private void restoreCoupon(Long couponId) {
+        try {
+            UserCoupon userCoupon = userCouponRepository.findById(couponId)
+                    .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "쿠폰을 찾을 수 없습니다: " + couponId));
+            
+            // 쿠폰 복구 (USED → AVAILABLE)
+            userCoupon.restore();
+            userCouponRepository.save(userCoupon);
+            
+            log.info("쿠폰 복구 완료 - couponId: {}, 복구 후 상태: {}", couponId, userCoupon.getStatus());
+            
+        } catch (Exception e) {
+            log.error("쿠폰 복구 실패 - couponId: {}, error: {}", couponId, e.getMessage(), e);
+        }
+    }
 
     /**
      * PG에서 결제 상태 조회하여 우리 시스템과 비교
