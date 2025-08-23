@@ -81,7 +81,7 @@ public class PaymentFacade {
             log.info("Payment 저장 완료 - paymentId: {}", savedPayment.getId());
 
             // 2. PG 결제 요청 (비동기)
-            PaymentResult result = requestPgPayment(savedPayment, amount, paymentMethod);
+            PaymentResult result = requestPgPayment(userId, savedPayment, amount, paymentMethod);
             log.info("requestPgPayment 완료 - orderId: {}, success: {}", orderId, result.success());
             return result;
         } catch (Exception e) {
@@ -91,11 +91,12 @@ public class PaymentFacade {
     }
 
     // PG 요청은 트랜잭션 외부에서 (또는 별도 트랜잭션)
-    private PaymentResult requestPgPayment(Payment payment, long amount, PaymentMethod paymentMethod) {
+    private PaymentResult requestPgPayment(Long userId, Payment payment, long amount, PaymentMethod paymentMethod) {
         try {
             Long orderId = payment.getOrderId();
-            log.info("PG 결제 요청 시작 - orderId: {}, amount: {}", orderId, amount);
+            log.info("PG 결제 요청 시작 - userId: {}, orderId: {}, amount: {}", userId, orderId, amount);
             PgPaymentResponse pgResponse = pgPaymentService.processPayment(
+                    userId.toString(),
                     orderId,
                     paymentMethod.getCardType().name(),
                     paymentMethod.getCardNo(),

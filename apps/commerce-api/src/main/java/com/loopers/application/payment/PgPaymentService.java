@@ -23,8 +23,8 @@ public class PgPaymentService {
 
     @CircuitBreaker(name = "pgCircuitBreaker", fallbackMethod = "fallbackPayment")
     @Retry(name = "pgRetry")
-    public PgPaymentResponse processPayment(Long orderId, String cardType, String cardNo, long amount) {
-        log.info("PG 결제 요청 시작 - orderId: {}, amount: {}", orderId, amount);
+    public PgPaymentResponse processPayment(String userId, Long orderId, String cardType, String cardNo, long amount) {
+        log.info("PG 결제 요청 시작 - userId: {}, orderId: {}, amount: {}", userId, orderId, amount);
 
         // 2. PG 결제 요청
         PgPaymentRequest request = PgPaymentRequest.of(
@@ -32,19 +32,19 @@ public class PgPaymentService {
                 "http://localhost:8080/api/v1/payments/callback"
         );
         
-        log.info("PG 요청 데이터 - orderId: {}, cardType: {}, cardNo: {}, amount: {}", 
-                request.orderId(), request.cardType(), request.cardNo(), request.amount());
+        log.info("PG 요청 데이터 - userId: {}, orderId: {}, cardType: {}, cardNo: {}, amount: {}", 
+                userId, request.orderId(), request.cardType(), request.cardNo(), request.amount());
 
-        PgPaymentResponse response = pgClient.requestPayment("135135", request);
-        log.info("PG 결제 요청 완료 - orderId: {}, success: {}", orderId, response.isSuccess());
+        PgPaymentResponse response = pgClient.requestPayment(userId, request);
+        log.info("PG 결제 요청 완료 - userId: {}, orderId: {}, success: {}", userId, orderId, response.isSuccess());
 
         return response;  // 성공/실패 상관없이 response 그대로 반환
 
     }
 
     // Fallback 메서드 - PG 장애 시 실행
-    public PgPaymentResponse fallbackPayment(Long orderId, String cardType, String cardNo, long amount, Exception ex) {
-        log.error("PG 시스템 장애로 인한 Fallback 실행 - orderId: {}, error: {}", orderId, ex.getMessage());
+    public PgPaymentResponse fallbackPayment(String userId, Long orderId, String cardType, String cardNo, long amount, Exception ex) {
+        log.error("PG 시스템 장애로 인한 Fallback 실행 - userId: {}, orderId: {}, error: {}", userId, orderId, ex.getMessage());
 
         // Fallback 시 실패 응답 생성
         return new PgPaymentResponse(
@@ -56,10 +56,10 @@ public class PgPaymentService {
     // 결제 상태 조회 (재시도 + Circuit Breaker 적용)
     @CircuitBreaker(name = "pgCircuitBreaker", fallbackMethod = "fallbackGetPaymentStatus")
     @Retry(name = "pgRetry")
-    public Payment getPaymentStatus(String transactionKey) {
-        log.info("PG 결제 상태 조회 - transactionKey: {}", transactionKey);
+    public Payment getPaymentStatus(String userId, String transactionKey) {
+        log.info("PG 결제 상태 조회 - userId: {}, transactionKey: {}", userId, transactionKey);
 
-        PgPaymentResponse response = pgClient.getPayment("135135", transactionKey);
+        PgPaymentResponse response = pgClient.getPayment(userId, transactionKey);
 
         // DB에서 Payment 조회 후 상태 업데이트
         Payment payment = paymentRepository.findByTransactionKey(transactionKey)
@@ -72,8 +72,8 @@ public class PgPaymentService {
     }
 
     // 결제 상태 조회 Fallback
-    public Payment fallbackGetPaymentStatus(String transactionKey, Exception ex) {
-        log.error("PG 상태 조회 장애로 인한 Fallback - transactionKey: {}, error: {}", transactionKey, ex.getMessage());
+    public Payment fallbackGetPaymentStatus(String userId, String transactionKey, Exception ex) {
+        log.error("PG 상태 조회 장애로 인한 Fallback - userId: {}, transactionKey: {}, error: {}", userId, transactionKey, ex.getMessage());
 
         // DB에서만 조회해서 반환 (PG 상태는 나중에 수동 확인)
         return paymentRepository.findByTransactionKey(transactionKey)
