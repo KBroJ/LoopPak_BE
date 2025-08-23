@@ -180,7 +180,7 @@ class PaymentV1ApiE2ETest {
 
         String statusUrl = "/api/v1/payments/" + transactionKey + "/status";
         HttpHeaders headers = new HttpHeaders();
-        headers.set("X-USER-ID", "135135");
+        headers.set("X-USER-ID", testUser.id().toString());
 
         // act
         ResponseEntity<ApiResponse<PaymentV1Dto.PaymentStatusResponse>> response = testRestTemplate.exchange(
@@ -217,7 +217,7 @@ class PaymentV1ApiE2ETest {
         String syncUrl = "/api/v1/payments/sync-status";
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("X-USER-ID", "135135");
+        headers.set("X-USER-ID", testUser.id().toString());
 
         PaymentV1Dto.PaymentSyncRequest syncRequest = new PaymentV1Dto.PaymentSyncRequest(transactionKey);
 

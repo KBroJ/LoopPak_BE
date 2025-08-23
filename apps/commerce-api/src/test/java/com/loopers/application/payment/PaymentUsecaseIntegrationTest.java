@@ -272,7 +272,7 @@ class PaymentUsecaseIntegrationTest {
             when(pgClient.getPayment(anyString(), anyString())).thenReturn(pgResponse);
 
             // act
-            paymentFacade.syncPaymentStatus(transactionKey, "135135");
+            paymentFacade.syncPaymentStatus(transactionKey, testUser.id().toString());
 
             // assert
             Optional<Payment> updatedPayment = paymentRepository.findByTransactionKey(transactionKey);
@@ -302,7 +302,7 @@ class PaymentUsecaseIntegrationTest {
             paymentRepository.save(payment);
 
             // act
-            PaymentStatusInfo result = paymentFacade.checkPaymentStatus(transactionKey, "135135");
+            PaymentStatusInfo result = paymentFacade.checkPaymentStatus(transactionKey, testUser.id().toString());
 
             // assert
             assertThat(result).isNotNull();
