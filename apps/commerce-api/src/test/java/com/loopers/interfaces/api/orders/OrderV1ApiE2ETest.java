@@ -5,7 +5,7 @@ import com.loopers.application.brand.BrandInfo;
 import com.loopers.application.coupon.CouponApplicationService;
 import com.loopers.application.coupon.CouponInfo;
 import com.loopers.application.points.PointApplicationService;
-import com.loopers.application.product.ProductApplicationService;
+import com.loopers.application.product.ProductFacade;
 import com.loopers.application.product.ProductResponse;
 import com.loopers.application.users.UserApplicationService;
 import com.loopers.application.users.UserInfo;
@@ -44,7 +44,7 @@ class OrderV1ApiE2ETest {
 
     @Autowired private UserApplicationService userAppService;
     @Autowired private BrandApplicationService brandAppService;
-    @Autowired private ProductApplicationService productAppService;
+    @Autowired private ProductFacade productFacade;
     @Autowired private PointApplicationService pointAppService;
     @Autowired private CouponApplicationService couponAppService;
     @Autowired private ProductRepository productRepository;
@@ -63,8 +63,8 @@ class OrderV1ApiE2ETest {
         pointAppService.chargePoint(testUser.userId(), 100000L);
 
         BrandInfo brand = brandAppService.create("E2E브랜드", "설명", true);
-        product1 = productAppService.create(brand.id(), "상품1", "", 10000, 20, 10, ProductStatus.ACTIVE);
-        product2 = productAppService.create(brand.id(), "상품2", "", 5000, 20, 10, ProductStatus.ACTIVE);
+        product1 = productFacade.create(brand.id(), "상품1", "", 10000, 20, 10, ProductStatus.ACTIVE);
+        product2 = productFacade.create(brand.id(), "상품2", "", 5000, 20, 10, ProductStatus.ACTIVE);
 
         CouponInfo couponTemplate = couponAppService.createCoupon("1000원 할인쿠폰", "", CouponType.FIXED, 1000, 100, ZonedDateTime.now().minusDays(1), ZonedDateTime.now().plusDays(30));
         couponAppService.issueCouponToUser(testUser.userId(), couponTemplate.id());
@@ -87,7 +87,7 @@ class OrderV1ApiE2ETest {
                 new OrderV1Dto.OrderItemRequest(product1.productId(), 2),
                 new OrderV1Dto.OrderItemRequest(product2.productId(), 1)
         );
-        OrderV1Dto.OrderRequest request = new OrderV1Dto.OrderRequest(items, availableCoupon.getId());
+        OrderV1Dto.OrderInfo request = new OrderV1Dto.OrderInfo(items, availableCoupon.getId(), "POINT", null);
 
         // 2. API 요청 전 초기 상태 기록
         long initialPoints = pointRepository.findByUserId(testUser.id()).get().getPoint();
@@ -130,7 +130,7 @@ class OrderV1ApiE2ETest {
         List<OrderV1Dto.OrderItemRequest> items = List.of(
                 new OrderV1Dto.OrderItemRequest(product1.productId(), 21)
         );
-        OrderV1Dto.OrderRequest request = new OrderV1Dto.OrderRequest(items, availableCoupon.getId());
+        OrderV1Dto.OrderInfo request = new OrderV1Dto.OrderInfo(items, availableCoupon.getId(), "POINT", null);
 
         // 2. API 요청 전 초기 상태 기록
         long initialPoints = pointRepository.findByUserId(testUser.id()).get().getPoint();

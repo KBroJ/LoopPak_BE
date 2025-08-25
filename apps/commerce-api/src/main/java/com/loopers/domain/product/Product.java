@@ -46,7 +46,7 @@ public class Product extends BaseEntity {
     private long likeCount = 0L; // 기본값을 0으로 설정
 
     @Version
-    private Long version;
+    private Long version = 0l;
 
     private Product(
             Long brandId, String name, String description, long price, int stock, int maxOrderQuantity, ProductStatus status

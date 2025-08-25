@@ -2,7 +2,7 @@ package com.loopers.application.like;
 
 import com.loopers.application.brand.BrandApplicationService;
 import com.loopers.application.brand.BrandInfo;
-import com.loopers.application.product.ProductApplicationService;
+import com.loopers.application.product.ProductFacade;
 import com.loopers.application.product.ProductResponse;
 import com.loopers.application.users.UserApplicationService;
 import com.loopers.application.users.UserInfo;
@@ -35,9 +35,9 @@ class LikeConcurrencyTest {
     @Autowired
     private UserApplicationService userAppService;
     @Autowired
-    private LikeApplicationService likeAppService;
+    private LikeFacade likeFacade;
     @Autowired
-    private ProductApplicationService productAppService;
+    private ProductFacade productFacade;
     @Autowired
     private BrandApplicationService brandAppService;
     @Autowired
@@ -52,7 +52,7 @@ class LikeConcurrencyTest {
     @BeforeEach
     void setUp() {
         BrandInfo brand = brandAppService.create("브랜드", "설명", true);
-        product = productAppService.create(brand.id(), "상품", "", 1000, 100, 10, ProductStatus.ACTIVE);
+        product = productFacade.create(brand.id(), "상품", "", 1000, 100, 10, ProductStatus.ACTIVE);
 
         users = new ArrayList<>();
         for (int i = 0; i < 100; i++) {
@@ -78,7 +78,7 @@ class LikeConcurrencyTest {
             final UserInfo user = users.get(i);
             executorService.submit(() -> {
                 try {
-                    likeAppService.like(user.id(), product.productId(), LikeType.PRODUCT);
+                    likeFacade.like(user.id(), product.productId(), LikeType.PRODUCT);
                 } finally {
                     latch.countDown();
                 }
@@ -96,7 +96,7 @@ class LikeConcurrencyTest {
     void optimisticLock_preventsConcurrentUnlike() throws InterruptedException {
         // arrange
         // 모든 스레드가 공격할 단 하나의 '좋아요' 데이터를 생성합니다.
-        likeAppService.like(users.get(0).id(), product.productId(), LikeType.PRODUCT);
+        likeFacade.like(users.get(0).id(), product.productId(), LikeType.PRODUCT);
 
         int threadCount = 10;
         ExecutorService executorService = Executors.newFixedThreadPool(10);
@@ -109,7 +109,7 @@ class LikeConcurrencyTest {
         for (int i = 0; i < threadCount; i++) {
             executorService.submit(() -> {
                 try {
-                    likeAppService.unlike(users.get(0).id(), product.productId(), LikeType.PRODUCT);
+                    likeFacade.unlike(users.get(0).id(), product.productId(), LikeType.PRODUCT);
                     successCount.incrementAndGet(); // 성공 시 카운트 증가
                 } catch (ObjectOptimisticLockingFailureException e) {
                     // 낙관적 락 충돌이 발생하면 이곳으로 들어옵니다.

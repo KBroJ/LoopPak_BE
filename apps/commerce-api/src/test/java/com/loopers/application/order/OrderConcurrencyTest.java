@@ -5,7 +5,7 @@ import com.loopers.application.brand.BrandInfo;
 import com.loopers.application.coupon.CouponApplicationService;
 import com.loopers.application.coupon.CouponInfo;
 import com.loopers.application.points.PointApplicationService;
-import com.loopers.application.product.ProductApplicationService;
+import com.loopers.application.product.ProductFacade;
 import com.loopers.application.product.ProductResponse;
 import com.loopers.application.users.UserApplicationService;
 import com.loopers.application.users.UserInfo;
@@ -13,8 +13,6 @@ import com.loopers.domain.coupon.CouponType;
 import com.loopers.domain.coupon.UserCoupon;
 import com.loopers.domain.coupon.UserCouponRepository;
 import com.loopers.domain.coupon.UserCouponStatus;
-import com.loopers.domain.order.OrderItemRequest;
-import com.loopers.domain.order.OrderRequest;
 import com.loopers.domain.points.Point;
 import com.loopers.domain.points.PointRepository;
 import com.loopers.domain.product.Product;
@@ -46,9 +44,9 @@ class OrderConcurrencyTest {
     @Autowired
     private BrandApplicationService brandAppService;
     @Autowired
-    private ProductApplicationService productAppService;
+    private ProductFacade productFacade;
     @Autowired
-    private OrderApplicationService orderAppService;
+    private OrderFacade orderFacade;
     @Autowired
     private CouponApplicationService couponAppService;
 
@@ -65,7 +63,7 @@ class OrderConcurrencyTest {
         // arrange
         UserInfo user = userAppService.saveUser("user", "M", "2000-01-01", "c-user@test.com");
         BrandInfo brand = brandAppService.create("브랜드", "설명", true);
-        ProductResponse product = productAppService.create(brand.id(), "상품", "", 5000, 100, 10, ProductStatus.ACTIVE);
+        ProductResponse product = productFacade.create(brand.id(), "상품", "", 5000, 100, 10, ProductStatus.ACTIVE);
         pointAppService.chargePoint(user.userId(), 100000L);
 
         // 2. 모든 스레드가 사용할 단 하나의 쿠폰을 생성하고 사용자에게 발급합니다.
@@ -80,16 +78,18 @@ class OrderConcurrencyTest {
         AtomicInteger successCount = new AtomicInteger(0);
 
         // 4. 모든 스레드가 동일한 쿠폰 ID를 사용하는 주문 요청을 미리 준비합니다.
-        OrderRequest orderRequest = new OrderRequest(
-                List.of(new OrderItemRequest(product.productId(), 1)),
-                userCoupon.getId()
+        OrderInfo orderInfo = new OrderInfo(
+                List.of(new OrderItemInfo(product.productId(), 1)),
+                userCoupon.getId(),
+                "POINT", // 포인트 결제
+                null                // 포인트 결제시 PaymentMethod는 null
         );
 
         // act
         for (int i = 0; i < threadCount; i++) {
             executorService.submit(() -> {
                 try {
-                    orderAppService.placeOrder(user.id(), orderRequest);
+                    orderFacade.placeOrder(user.id(), orderInfo);
                     successCount.incrementAndGet(); // 성공 시 카운트 증가
                 } catch (Exception e) {
                     // 비관적 락 충돌 시 LockAcquisitionException,
@@ -117,7 +117,7 @@ class OrderConcurrencyTest {
         // 1. 테스트용 사용자, 상품, 포인트를 생성합니다.
         UserInfo user = userAppService.saveUser("pointUser", "F", "2000-01-01", "p-user@test.com");
         BrandInfo brand = brandAppService.create("브랜드", "설명", true);
-        ProductResponse product = productAppService.create(brand.id(), "상품", "", 1000, 100, 10, ProductStatus.ACTIVE);
+        ProductResponse product = productFacade.create(brand.id(), "상품", "", 1000, 100, 10, ProductStatus.ACTIVE);
         long initialPoints = 50000L;
         pointAppService.chargePoint(user.userId(), initialPoints);
 
@@ -126,16 +126,18 @@ class OrderConcurrencyTest {
         ExecutorService executorService = Executors.newFixedThreadPool(10);
         CountDownLatch latch = new CountDownLatch(threadCount);
 
-        OrderRequest orderRequest = new OrderRequest(
-                List.of(new OrderItemRequest(product.productId(), 1)),
-                null // 쿠폰 미사용
+        OrderInfo orderInfo = new OrderInfo(
+                List.of(new OrderItemInfo(product.productId(), 1)),
+                null,   // 쿠폰 미사용
+                "POINT",        // 포인트 결제
+                null
         );
 
         // act
         for (int i = 0; i < threadCount; i++) {
             executorService.submit(() -> {
                 try {
-                    orderAppService.placeOrder(user.id(), orderRequest);
+                    orderFacade.placeOrder(user.id(), orderInfo);
                 } catch (Exception e) {
                     System.out.println("주문 실패 (포인트 부족 등): " + e.getMessage());
                 } finally {
@@ -159,7 +161,7 @@ class OrderConcurrencyTest {
         // arrange
         int initialStock = 100;
         BrandInfo brand = brandAppService.create("브랜드", "설명", true);
-        ProductResponse product = productAppService.create(brand.id(), "재고테스트상품", "", 1000, initialStock, 10, ProductStatus.ACTIVE);
+        ProductResponse product = productFacade.create(brand.id(), "재고테스트상품", "", 1000, initialStock, 10, ProductStatus.ACTIVE);
 
         int threadCount = 10;
         List<UserInfo> users = new ArrayList<>();
@@ -172,9 +174,11 @@ class OrderConcurrencyTest {
         ExecutorService executorService = Executors.newFixedThreadPool(10);
         CountDownLatch latch = new CountDownLatch(threadCount);
 
-        OrderRequest orderRequest = new OrderRequest(
-                List.of(new OrderItemRequest(product.productId(), 1)),
-                null
+        OrderInfo orderInfo = new OrderInfo(
+                List.of(new OrderItemInfo(product.productId(), 1)),
+                null,
+                "POINT", // 포인트 결제
+                null                // 포인트 결제시 PaymentMethod는 null
         );
 
         // act
@@ -182,7 +186,7 @@ class OrderConcurrencyTest {
             final UserInfo user = users.get(i);
             executorService.submit(() -> {
                 try {
-                    orderAppService.placeOrder(user.id(), orderRequest);
+                    orderFacade.placeOrder(user.id(), orderInfo);
                 } finally {
                     latch.countDown();
                 }

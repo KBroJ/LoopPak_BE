@@ -11,9 +11,13 @@ import java.util.List;
 
 public class OrderV1Dto {
 
-    public record OrderRequest(List<OrderItemRequest> items, Long couponId) {}
+    public record OrderInfo(
+            List<OrderItemRequest> items,
+            Long couponId,
+            String paymentType,
+            CardInfo paymentMethod
+    ) {}
     public record OrderItemRequest(Long productId, int quantity) {}
-
 
     public record OrderResponse(Long orderId) {
         public static OrderResponse from(Order order) {
@@ -76,5 +80,9 @@ public class OrderV1Dto {
             );
         }
     }
+
+    public record CardInfo(
+        String cardType, String cardNo
+    ) {}
 
 }

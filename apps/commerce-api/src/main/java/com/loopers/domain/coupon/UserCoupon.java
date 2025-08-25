@@ -57,4 +57,19 @@ public class UserCoupon extends BaseEntity {
         this.usedAt = ZonedDateTime.now();
     }
 
+    /**
+     * 쿠폰 복구 처리 (주문 취소/결제 실패 시)
+     */
+    public void restore() {
+        if (this.status != UserCouponStatus.USED) {
+            throw new CoreException(ErrorType.BAD_REQUEST, "사용된 쿠폰만 복구할 수 있습니다.");
+        }
+        if (ZonedDateTime.now().isAfter(this.expiresAt)) {
+            this.status = UserCouponStatus.EXPIRED;
+            throw new CoreException(ErrorType.BAD_REQUEST, "만료된 쿠폰은 복구할 수 없습니다.");
+        }
+        this.status = UserCouponStatus.AVAILABLE;
+        this.usedAt = null;
+    }
+
 }

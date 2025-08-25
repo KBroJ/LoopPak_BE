@@ -75,4 +75,43 @@ class UserCouponTest {
         }
     }
 
+    @DisplayName("쿠폰 복구")
+    @Nested
+    class RestoreCoupon {
+
+        @Test
+        @DisplayName("사용된 쿠폰을 정상적으로 복구 처리한다.")
+        void restoreCouponSuccessfully_whenRestoreUsedCoupon() {
+            // arrange
+            UserCoupon userCoupon = UserCoupon.of(1L, 1L, ZonedDateTime.now().plusDays(30));
+            userCoupon.use(); // 먼저 쿠폰을 사용 상태로 만듦
+            assertThat(userCoupon.getStatus()).isEqualTo(UserCouponStatus.USED);
+
+            // act
+            userCoupon.restore();
+
+            // assert
+            assertThat(userCoupon.getStatus()).isEqualTo(UserCouponStatus.AVAILABLE);
+            assertThat(userCoupon.getUsedAt()).isNull();
+        }
+
+        @Test
+        @DisplayName("사용 가능한(AVAILABLE) 상태의 쿠폰을 복구하려고 하면 예외가 발생한다.")
+        void throwsBadRequestException_whenRestoringAvailableCoupon() {
+            // arrange
+            UserCoupon userCoupon = UserCoupon.of(1L, 1L, ZonedDateTime.now().plusDays(30));
+            assertThat(userCoupon.getStatus()).isEqualTo(UserCouponStatus.AVAILABLE);
+
+            // act
+            CoreException result = assertThrows(CoreException.class, () -> {
+                userCoupon.restore();
+            });
+
+            // assert
+            assertThat(result.getErrorType()).isEqualTo(ErrorType.BAD_REQUEST);
+            assertThat(result.getMessage()).isEqualTo("사용된 쿠폰만 복구할 수 있습니다.");
+        }
+
+    }
+
 }
