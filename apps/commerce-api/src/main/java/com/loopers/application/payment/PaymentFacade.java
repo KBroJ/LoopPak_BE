@@ -10,6 +10,7 @@ import com.loopers.domain.coupon.UserCouponRepository;
 import com.loopers.domain.product.Product;
 import com.loopers.domain.product.ProductRepository;
 import com.loopers.infrastructure.pg.PgPaymentResponse;
+import com.loopers.infrastructure.pg.PgPaymentStatus;
 import com.loopers.interfaces.api.payment.PgCallbackRequest;
 import com.loopers.support.error.CoreException;
 import com.loopers.support.error.ErrorType;
@@ -83,9 +84,29 @@ public class PaymentFacade {
             // 2. PG 결제 요청 (비동기)
             PaymentResult result = requestPgPayment(userId, savedPayment, amount, paymentMethod);
             log.info("requestPgPayment 완료 - orderId: {}, success: {}", orderId, result.success());
+
+            // PG 요청 실패 시 Payment 상태도 FAILED로 변경
+            if (!result.success()) {
+                savedPayment.markAsFailed();
+                paymentRepository.save(savedPayment);
+            }
+
             return result;
+
         } catch (Exception e) {
             log.error("processCardPayment 예외 발생 - orderId: {}, error: {}", orderId, e.getMessage(), e);
+
+            // Payment가 저장되었는지 확인하여 다르게 처리
+            paymentRepository.findByOrderId(orderId)
+                    .ifPresentOrElse(
+                            payment -> {
+                                log.warn("Payment 저장 후 예외 발생 - PENDING 유지");
+                            },
+                            () -> {
+                                log.error("Payment 저장 전 예외 발생");
+                            }
+                    );
+
             return PaymentResult.failure("카드 결제 처리 중 오류 발생: " + e.getMessage());
         }
     }
@@ -116,18 +137,56 @@ public class PaymentFacade {
             } else {
                 log.warn("카드 결제 요청 실패 - orderId: {}, status: {}", orderId, pgResponse.getStatus());
                 
-                // Fallback으로 인한 transactionKey가 있으면 업데이트하고 fallback 응답 반환
-                if (transactionKey != null && transactionKey.startsWith("FALLBACK_")) {
-                    log.info("Fallback transactionKey 업데이트 - orderId: {}, transactionKey: {}", orderId, transactionKey);
-                    updatePaymentTransactionKey(payment, transactionKey);
-                    return PaymentResult.fallback(transactionKey, "PG 시스템 장애로 인한 Fallback 처리");
-                }
-                
-                return PaymentResult.failure("카드 결제 요청 실패: " + pgResponse.getStatus());
+                return handlePgFailure(payment, pgResponse, transactionKey, orderId);
             }
         } catch (Exception e) {
             log.error("카드 결제 처리 중 예외 발생 - orderId: {}", payment.getOrderId(), e);
             return PaymentResult.failure("카드 결제 처리 중 오류 발생: " + e.getMessage());
+        }
+    }
+
+    /**
+     * PG 실패 응답을 상태별로 처리
+     */
+    private PaymentResult handlePgFailure(
+            Payment payment, PgPaymentResponse pgResponse,
+            String transactionKey, Long orderId
+    ) {
+
+        PgPaymentStatus status = pgResponse.getStatus();
+
+        switch (status) {
+            case FAILED -> {
+                // 명확한 실패: 카드 한도 초과, 유효하지 않은 카드 등
+                log.warn("카드 결제 명확한 실패 - orderId: {}, status: {}", orderId, status);
+                payment.markAsFailed();
+                paymentRepository.save(payment);
+                return PaymentResult.failure("카드 결제 실패: 유효하지 않은 카드이거나 한도가 초과되었습니다.");
+            }
+            case CANCELLED -> {
+                // 명확한 실패: 결제 취소
+                log.warn("카드 결제 취소됨 - orderId: {}, status: {}", orderId, status);
+                payment.markAsFailed();
+                paymentRepository.save(payment);
+                return PaymentResult.failure("카드 결제가 취소되었습니다.");
+            }
+            case PENDING, PROCESSING -> {
+                // 불확실한 상태: 서버 장애, 타임아웃 등 - Payment는 PENDING 유지
+                log.warn("카드 결제 처리중 또는 대기 - orderId: {}, status: {} - PENDING 유지", orderId, status);
+
+                // Fallback transactionKey가 있으면 저장
+                if (transactionKey != null && transactionKey.startsWith("FALLBACK_")) {
+                    updatePaymentTransactionKey(payment, transactionKey);
+                    return PaymentResult.fallback(transactionKey, "PG 시스템 일시 장애로 인한 Fallback 처리");
+                }
+
+                return PaymentResult.failure("PG 시스템 일시 장애 - 잠시 후 다시 시도해주세요.");
+            }
+            default -> {
+                // 알 수 없는 상태 - 안전하게 PENDING 유지
+                log.error("알 수 없는 PG 응답 상태 - orderId: {}, status: {} - PENDING 유지", orderId, status);
+                return PaymentResult.failure("결제 처리 중 알 수 없는 오류가 발생했습니다.");
+            }
         }
     }
 
@@ -274,7 +333,7 @@ public class PaymentFacade {
 
             // 3. 상태 비교
             String ourStatus = ourPayment.getStatus().name();
-            String pgStatus = pgResponse.getStatus();
+            PgPaymentStatus pgStatus = pgResponse.getStatus();
             boolean isSync = isStatusSynchronized(ourStatus, pgStatus);
 
             log.info("결제 상태 확인 - transactionKey: {}, 우리시스템: {}, PG: {}, 동기화: {}",
@@ -311,7 +370,7 @@ public class PaymentFacade {
             PgPaymentResponse pgResponse = pgPaymentService.getPaymentInfo(userId, transactionKey);
 
             String ourStatus = ourPayment.getStatus().name();
-            String pgStatus = pgResponse.getStatus();
+            PgPaymentStatus pgStatus = pgResponse.getStatus();
             boolean wasSync = isStatusSynchronized(ourStatus, pgStatus);
 
             // 3. 불일치 시 동기화 수행
@@ -340,11 +399,11 @@ public class PaymentFacade {
     /**
      * 상태 동기화 여부 확인
      */
-    private boolean isStatusSynchronized(String ourStatus, String pgStatus) {
+    private boolean isStatusSynchronized(String ourStatus, PgPaymentStatus pgStatus) {
         return switch (ourStatus) {
-            case "PENDING" -> pgStatus.equals("PROCESSING") || pgStatus.equals("PENDING");
-            case "SUCCESS" -> pgStatus.equals("SUCCESS");
-            case "FAILED" -> pgStatus.equals("FAILED") || pgStatus.equals("CANCELLED");
+            case "PENDING" -> pgStatus == PgPaymentStatus.PROCESSING || pgStatus == PgPaymentStatus.PENDING;
+            case "SUCCESS" -> pgStatus == PgPaymentStatus.SUCCESS;
+            case "FAILED" -> pgStatus == PgPaymentStatus.FAILED || pgStatus == PgPaymentStatus.CANCELLED;
             default -> false;
         };
     }
@@ -352,15 +411,15 @@ public class PaymentFacade {
     /**
      * PG 상태에 맞춰 동기화
      */
-    private void syncPaymentWithPgStatus(Payment payment, String pgStatus) {
+    private void syncPaymentWithPgStatus(Payment payment, PgPaymentStatus pgStatus) {
         switch (pgStatus) {
-            case "SUCCESS" -> {
+            case SUCCESS -> {
                 if (payment.getStatus() != PaymentStatus.SUCCESS) {
                     payment.markAsSuccess(payment.getTransactionKey());
                     updateRelatedOrderStatus(payment, true);
                 }
             }
-            case "FAILED", "CANCELLED" -> {
+            case FAILED, CANCELLED -> {
                 if (payment.getStatus() != PaymentStatus.FAILED) {
                     payment.markAsFailed();
                     log.warn("PG 결제 실패 확인 - 주문 상태는 수동 검토 필요");
