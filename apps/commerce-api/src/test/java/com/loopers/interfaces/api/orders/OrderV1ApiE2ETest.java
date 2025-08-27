@@ -115,7 +115,7 @@ class OrderV1ApiE2ETest {
 
         // 5-3. 쿠폰 상태 변경 검증
         UserCoupon finalCoupon = userCouponRepository.findById(availableCoupon.getId()).get();
-        assertThat(finalCoupon.getStatus()).isIn(UserCouponStatus.RESERVED, UserCouponStatus.USED);
+        assertThat(finalCoupon.getStatus()).isEqualTo(UserCouponStatus.USED);
     }
 
     @Test

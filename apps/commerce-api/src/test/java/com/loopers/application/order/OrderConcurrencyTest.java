@@ -106,7 +106,7 @@ class OrderConcurrencyTest {
         assertThat(successCount.get()).as("오직 1개의 요청만 성공해야 함").isEqualTo(1);
 
         UserCoupon finalCoupon = userCouponRepository.findById(userCoupon.getId()).orElseThrow();
-        assertThat(finalCoupon.getStatus()).isIn(UserCouponStatus.RESERVED, UserCouponStatus.USED);
+        assertThat(finalCoupon.getStatus()).as("쿠폰 상태가 'USED'여야 함").isEqualTo(UserCouponStatus.USED);
     }
 
 

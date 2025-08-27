@@ -94,10 +94,6 @@ public class OrderFacade {
                 throw new CoreException(ErrorType.BAD_REQUEST, "사용할 수 없는 쿠폰입니다.");
             }
 
-            // 쿠폰 예약 (동시성 보장)
-            userCoupon.reserve(); // AVAILABLE → RESERVED
-            log.info("쿠폰 예약 완료 - couponId: {}, userId: {}", orderInfo.couponId(), userId);
-
         }
 
         // === 4. 최종 결제 금액 계산 ===
@@ -141,11 +137,6 @@ public class OrderFacade {
         if (!paymentResult.success()) {
             savedOrder.cancel("결제 실패: " + paymentResult.message());
 
-            // 쿠폰 예약 취소 처리
-            if (orderInfo.couponId() != null) {
-                cancelCouponReservation(orderInfo.couponId(), userId);
-            }
-
         } else {
             if (paymentResult.status() == PaymentStatus.SUCCESS) {
                 savedOrder.complete();  // PAID 상태로
@@ -167,17 +158,6 @@ public class OrderFacade {
         }
         log.warn("PaymentMethod가 null입니다 - orderInfo.paymentMethod()이 null");
         return null;
-    }
-
-    @Transactional
-    private void cancelCouponReservation(Long couponId, Long userId) {
-        UserCoupon userCoupon = userCouponRepository.findByIdAndUserId(couponId, userId)
-                .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "쿠폰을 찾을 수 없습니다."));
-
-        if (userCoupon.getStatus() == UserCouponStatus.RESERVED) {
-            userCoupon.cancelReservation(); // RESERVED → AVAILABLE
-            log.info("쿠폰 예약 취소 완료 - couponId: {}, userId: {}", couponId, userId);
-        }
     }
 
 }
