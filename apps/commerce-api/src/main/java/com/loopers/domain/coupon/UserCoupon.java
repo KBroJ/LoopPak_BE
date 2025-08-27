@@ -72,4 +72,47 @@ public class UserCoupon extends BaseEntity {
         this.usedAt = null;
     }
 
+    /**
+     * 쿠폰 예약 처리 (주문 생성 시)
+     */
+    public void reserve() {
+        if (this.status != UserCouponStatus.AVAILABLE) {
+            throw new CoreException(ErrorType.BAD_REQUEST, "이미 사용했거나 만료된 쿠폰입니다.");
+        }
+        if (ZonedDateTime.now().isAfter(this.expiresAt)) {
+            this.status = UserCouponStatus.EXPIRED;
+            throw new CoreException(ErrorType.BAD_REQUEST, "기간이 만료된 쿠폰입니다.");
+        }
+        this.status = UserCouponStatus.RESERVED;
+    }
+
+    /**
+     * 쿠폰 사용 확정 (결제 완료 시)
+     */
+    public void confirmUsage() {
+        if (this.status != UserCouponStatus.RESERVED) {
+            throw new CoreException(ErrorType.BAD_REQUEST, "예약된 쿠폰만 사용 확정할 수 있습니다.");
+        }
+        this.status = UserCouponStatus.USED;
+        this.usedAt = ZonedDateTime.now();
+    }
+
+    /**
+     * 쿠폰 예약 취소 (주문 실패 시)
+     */
+    public void cancelReservation() {
+        if (this.status != UserCouponStatus.RESERVED) {
+            throw new CoreException(ErrorType.BAD_REQUEST, "예약된 쿠폰만 취소할 수 있습니다.");
+        }
+        this.status = UserCouponStatus.AVAILABLE;
+    }
+
+    /**
+     * 쿠폰 사용 가능 여부 확인 (수정)
+     */
+    public boolean isUsable() {
+        return this.status == UserCouponStatus.AVAILABLE &&
+                ZonedDateTime.now().isBefore(this.expiresAt);
+    }
+
 }

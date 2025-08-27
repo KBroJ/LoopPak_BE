@@ -16,6 +16,7 @@ import com.loopers.support.error.CoreException;
 import com.loopers.support.error.ErrorType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +36,8 @@ public class OrderFacade {
     private final PointRepository pointRepository;
     private final UserCouponRepository userCouponRepository;
     private final CouponRepository couponRepository;
+
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public Order placeOrder(Long userId, OrderInfo orderInfo) {
@@ -86,7 +89,14 @@ public class OrderFacade {
             discountAmount = policy.calculateDiscount(originalTotalPrice, coupon.getDiscountValue());
 
             // 3-4. 쿠폰 사용 처리 (상태 변경)
-            userCoupon.use();
+//            userCoupon.use();
+            if (!userCoupon.isUsable()) {
+                throw new CoreException(ErrorType.BAD_REQUEST, "사용할 수 없는 쿠폰입니다.");
+            }
+
+            // 쿠폰 예약 (동시성 보장)
+            userCoupon.reserve(); // AVAILABLE → RESERVED
+            log.info("쿠폰 예약 완료 - couponId: {}, userId: {}", orderInfo.couponId(), userId);
 
         }
 
@@ -103,22 +113,43 @@ public class OrderFacade {
         );
         PaymentMethod paymentMethod = createPaymentMethod(orderInfo);
 
+
+        // === 7. 이벤트 발행 (쿠폰 사용 처리) ===
+        eventPublisher.publishEvent(
+            OrderCreatedEvent.of(
+                savedOrder.getId(),     // orderId
+                userId,                 // userId
+                orderInfo.couponId(),   // couponId
+                finalPrice,             // finalPrice
+                paymentType,            // paymentType
+                paymentMethod           // paymentMethod
+            )
+        );
+
+        log.info("주문 생성 완료 및 쿠폰 사용 이벤트 발행 - orderId: {}", savedOrder.getId());
+
+        // === 8. 결제 처리 ===
         PaymentResult paymentResult = paymentFacade.processPayment(
                 userId,
-                savedOrder.getId(),  // 생성된 주문 ID 사용
+                savedOrder.getId(),
                 finalPrice,
                 paymentType,
                 paymentMethod
         );
 
-        // === 7. 결제 결과에 따른 주문 상태 업데이트 ===
+        // === 9. 결제 결과에 따른 주문 상태 업데이트 ===
         if (!paymentResult.success()) {
             savedOrder.cancel("결제 실패: " + paymentResult.message());
+
+            // 쿠폰 예약 취소 처리
+            if (orderInfo.couponId() != null) {
+                cancelCouponReservation(orderInfo.couponId(), userId);
+            }
+
         } else {
             if (paymentResult.status() == PaymentStatus.SUCCESS) {
                 savedOrder.complete();  // PAID 상태로
             }
-            // PENDING은 그대로 유지 (카드 결제 비동기 처리 대기)
         }
 
         return savedOrder;
@@ -136,6 +167,17 @@ public class OrderFacade {
         }
         log.warn("PaymentMethod가 null입니다 - orderInfo.paymentMethod()이 null");
         return null;
+    }
+
+    @Transactional
+    private void cancelCouponReservation(Long couponId, Long userId) {
+        UserCoupon userCoupon = userCouponRepository.findByIdAndUserId(couponId, userId)
+                .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "쿠폰을 찾을 수 없습니다."));
+
+        if (userCoupon.getStatus() == UserCouponStatus.RESERVED) {
+            userCoupon.cancelReservation(); // RESERVED → AVAILABLE
+            log.info("쿠폰 예약 취소 완료 - couponId: {}, userId: {}", couponId, userId);
+        }
     }
 
 }
