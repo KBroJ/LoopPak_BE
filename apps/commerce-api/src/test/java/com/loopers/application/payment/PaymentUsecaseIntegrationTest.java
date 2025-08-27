@@ -25,6 +25,7 @@ import com.loopers.domain.product.ProductRepository;
 import com.loopers.domain.product.ProductStatus;
 import com.loopers.infrastructure.pg.PgClient;
 import com.loopers.infrastructure.pg.PgPaymentResponse;
+import com.loopers.infrastructure.pg.PgPaymentStatus;
 import com.loopers.interfaces.api.payment.PgCallbackRequest;
 import com.loopers.support.error.CoreException;
 import com.loopers.utils.DatabaseCleanUp;
@@ -153,7 +154,7 @@ class PaymentUsecaseIntegrationTest {
             long amount = 10000L;
             PaymentMethod paymentMethod = PaymentMethod.of(CardType.SAMSUNG, "1111-1111-1111-1111");
 
-            PgPaymentResponse pgResponse = PgPaymentResponse.success("20250822:TR:success123", "PENDING");
+            PgPaymentResponse pgResponse = PgPaymentResponse.success("20250822:TR:success123", PgPaymentStatus.PENDING);
             when(pgClient.requestPayment(anyString(), any())).thenReturn(pgResponse);
 
             // act
@@ -188,7 +189,8 @@ class PaymentUsecaseIntegrationTest {
 
             Optional<Payment> savedPayment = paymentRepository.findByOrderId(orderId);
             assertThat(savedPayment).isPresent();
-            assertThat(savedPayment.get().getTransactionKey()).startsWith("FALLBACK_");
+            assertThat(savedPayment.get().getTransactionKey()).isNull();
+            assertThat(savedPayment.get().getStatus()).isEqualTo(PaymentStatus.PENDING); // Fallback 상황에서는 PENDING 상태 유지 (재시도 가능)
         }
     }
 
@@ -268,7 +270,7 @@ class PaymentUsecaseIntegrationTest {
             payment.updateTransactionKey(transactionKey);
             Payment savedPayment = paymentRepository.save(payment);
 
-            PgPaymentResponse pgResponse = PgPaymentResponse.success(transactionKey, "SUCCESS");
+            PgPaymentResponse pgResponse = PgPaymentResponse.success(transactionKey, PgPaymentStatus.SUCCESS);
             when(pgClient.getPayment(anyString(), anyString())).thenReturn(pgResponse);
 
             // act

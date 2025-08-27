@@ -5,5 +5,6 @@ public enum PgPaymentStatus {
     PROCESSING,
     SUCCESS,
     FAILED,
-    CANCELLED
+    CANCELLED,
+    UNKNOWN
 }

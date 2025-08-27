@@ -23,7 +23,7 @@ public record PaymentResult(
     }
 
     public static PaymentResult fallback(String transactionId, String message) {
-        return new PaymentResult(false, PaymentStatus.FAILED, message, transactionId);
+        return new PaymentResult(false, PaymentStatus.PENDING, message, transactionId);
     }
 
 }
