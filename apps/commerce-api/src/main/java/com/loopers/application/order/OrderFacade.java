@@ -1,5 +1,7 @@
 package com.loopers.application.order;
 
+import com.loopers.application.dataplatform.event.OrderDataPlatformEvent;
+import com.loopers.application.dataplatform.event.PaymentDataPlatformEvent;
 import com.loopers.application.order.event.OrderCreatedEvent;
 import com.loopers.application.payment.PaymentFacade;
 import com.loopers.application.payment.PaymentResult;
@@ -140,6 +142,9 @@ public class OrderFacade {
                 // Point 결제는 즉시 완료 - 같은 트랜잭션에서 처리
                 savedOrder.complete();
                 log.info("포인트 결제 완료 - 주문 상태 PAID로 변경 - orderId: {}", savedOrder.getId());
+                
+                // 데이터 플랫폼 이벤트 발행
+                publishPointPaymentDataPlatformEvents(savedOrder);
             } else {
                 // Card 실제 결제 완료/실패는 PaymentCallbackService에서 처리
                 // PG 콜백 대기 상태로 유지 (PROCESSING 상태)
@@ -169,6 +174,34 @@ public class OrderFacade {
         }
         log.warn("PaymentMethod가 null입니다 - orderInfo.paymentMethod()이 null");
         return null;
+    }
+
+    /**
+     * 포인트 결제 완료 시 데이터 플랫폼 이벤트 발행
+     */
+    private void publishPointPaymentDataPlatformEvents(Order order) {
+        // 주문 데이터 플랫폼 이벤트
+        OrderDataPlatformEvent orderEvent = OrderDataPlatformEvent.of(
+                order.getId(),
+                order.getUserId(),
+                order.getFinalPaymentPrice(),
+                order.getDiscountAmount(),
+                order.getStatus().name()
+        );
+        eventPublisher.publishEvent(orderEvent);
+        log.info("포인트 결제 - 주문 데이터 플랫폼 이벤트 발행 - orderId: {}", order.getId());
+
+        // 결제 데이터 플랫폼 이벤트
+        PaymentDataPlatformEvent paymentEvent = PaymentDataPlatformEvent.of(
+                order.getId(),
+                order.getUserId(),
+                "POINT",
+                order.getFinalPaymentPrice(),
+                "SUCCESS",
+                "point-payment-" + order.getId() // 포인트 결제는 별도 트랜잭션키 생성
+        );
+        eventPublisher.publishEvent(paymentEvent);
+        log.info("포인트 결제 - 결제 데이터 플랫폼 이벤트 발행 - orderId: {}", order.getId());
     }
 
 }

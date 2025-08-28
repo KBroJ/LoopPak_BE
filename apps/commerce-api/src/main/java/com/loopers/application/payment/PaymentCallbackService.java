@@ -2,6 +2,7 @@ package com.loopers.application.payment;
 
 import com.loopers.application.payment.event.PaymentFailureEvent;
 import com.loopers.application.payment.event.PaymentSuccessEvent;
+import com.loopers.domain.payment.PaymentType;
 import com.loopers.domain.order.Order;
 import com.loopers.domain.order.OrderRepository;
 import com.loopers.domain.payment.Payment;
@@ -113,28 +114,33 @@ public class PaymentCallbackService {
         Order order = orderRepository.findByIdWithItems(payment.getOrderId())
                 .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "주문을 찾을 수 없습니다."));
 
+        // PaymentType 추론: PaymentMethod가 있으면 CARD, 없으면 POINT
+        PaymentType paymentType = (payment.getPaymentMethod() != null) ? PaymentType.CARD : PaymentType.POINT;
+
         if (callbackRequest.isSuccess()) {
             PaymentSuccessEvent successEvent = PaymentSuccessEvent.of(
                     payment.getOrderId(),
                     order.getUserId(),
+                    paymentType,
                     callbackRequest.transactionKey(),
                     callbackRequest.amount(),
                     callbackRequest.message(),
                     callbackRequest.processedAt()
             );
             eventPublisher.publishEvent(successEvent);
-            log.info("결제 성공 이벤트 발행 - orderId: {}", payment.getOrderId());
+            log.info("결제 성공 이벤트 발행 - orderId: {}, paymentType: {}", payment.getOrderId(), paymentType);
         } else {
             PaymentFailureEvent failureEvent = PaymentFailureEvent.of(
                     payment.getOrderId(),
                     order.getUserId(),
+                    paymentType,
                     callbackRequest.transactionKey(),
                     callbackRequest.amount(),
                     callbackRequest.message(),
                     callbackRequest.processedAt()
             );
             eventPublisher.publishEvent(failureEvent);
-            log.info("결제 실패 이벤트 발행 - orderId: {}", payment.getOrderId());
+            log.info("결제 실패 이벤트 발행 - orderId: {}, paymentType: {}", payment.getOrderId(), paymentType);
         }
     }
 

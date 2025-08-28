@@ -1,9 +1,7 @@
 package com.loopers.application.order.event;
 
-import com.loopers.application.payment.PaymentRecoveryService;
 import com.loopers.domain.coupon.UserCoupon;
 import com.loopers.domain.coupon.UserCouponRepository;
-import com.loopers.domain.order.OrderRepository;
 import com.loopers.support.error.CoreException;
 import com.loopers.support.error.ErrorType;
 import lombok.RequiredArgsConstructor;
@@ -20,9 +18,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 public class OrderEventHandler {
 
-    private final OrderRepository orderRepository;
     private final UserCouponRepository userCouponRepository;
-    private final PaymentRecoveryService paymentRecoveryService;
 
     /**
      * 주문 생성 후 쿠폰 사용 처리
