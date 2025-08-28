@@ -1,5 +1,6 @@
 package com.loopers.application.order;
 
+import com.loopers.application.order.event.OrderCreatedEvent;
 import com.loopers.application.payment.PaymentFacade;
 import com.loopers.application.payment.PaymentResult;
 import com.loopers.domain.coupon.*;
