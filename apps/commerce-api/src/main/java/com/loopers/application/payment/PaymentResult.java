@@ -14,7 +14,7 @@ public record PaymentResult(
     }
 
     public static PaymentResult cardRequestSuccess(String transactionId) {
-        return new PaymentResult(true, PaymentStatus.PENDING, "카드 결제 요청 완료",
+        return new PaymentResult(true, PaymentStatus.PROCESSING, "카드 결제 요청 완료",
                 transactionId);
     }
 

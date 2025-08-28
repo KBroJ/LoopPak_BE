@@ -43,7 +43,7 @@ public class OrderFacade {
     @Transactional
     public Order placeOrder(Long userId, OrderInfo orderInfo) {
 
-        // === 1. 데이터 조회 ===
+        // 1. 데이터 조회
         List<Long> productIds = orderInfo.items().stream().map(OrderItemInfo::productId).toList();
         List<Product> products =
 //                productRepository.findAllById(productIds);
@@ -53,7 +53,7 @@ public class OrderFacade {
         Point userPoint = pointRepository.findByUserIdWithLock(userId)
                 .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "사용자 포인트 정보를 찾을 수 없습니다."));
 
-        // === 2. 비즈니스 규칙 검증 ===
+        // 2. 비즈니스 규칙 검증
         // 요청된 상품이 존재하는지 확인
         if (productIds.size() != products.size()) {
             throw new CoreException(ErrorType.NOT_FOUND, "일부 상품 정보를 찾을 수 없습니다.");
@@ -72,7 +72,7 @@ public class OrderFacade {
                 .toList();
         long originalTotalPrice = orderItems.stream().mapToLong(OrderItem::getTotalPrice).sum();
 
-        // === 3. 쿠폰 로직 처리 ===
+        // 3. 쿠폰 로직 처리
         long discountAmount = 0L;
         if (orderInfo.couponId() != null) {
 
@@ -97,21 +97,21 @@ public class OrderFacade {
 
         }
 
-        // === 4. 최종 결제 금액 계산 ===
+        // 4. 최종 결제 금액 계산
         long finalPrice = originalTotalPrice - discountAmount;
 
-        // === 5. 주문 먼저 생성 (PENDING 상태) ===
+        // 5. 주문 먼저 생성 (PENDING 상태)
         Order newOrder = Order.of(userId, orderItems, discountAmount, orderInfo.couponId(), OrderStatus.PENDING);
         Order savedOrder = orderRepository.save(newOrder);  // PK 생성됨
 
-        // === 6. 결제 처리 (orderId와 함께) ===
+        // 6. 결제 처리 (orderId와 함께)
         PaymentType paymentType = PaymentType.valueOf(
                 orderInfo.paymentType() != null ? orderInfo.paymentType() : "POINT"
         );
         PaymentMethod paymentMethod = createPaymentMethod(orderInfo);
 
 
-        // === 7. 이벤트 발행 (쿠폰 사용 처리) ===
+        // 7. 이벤트 발행 (쿠폰 사용 처리)
         eventPublisher.publishEvent(
             OrderCreatedEvent.of(
                 savedOrder.getId(),     // orderId
@@ -125,7 +125,7 @@ public class OrderFacade {
 
         log.info("주문 생성 완료 및 쿠폰 사용 이벤트 발행 - orderId: {}", savedOrder.getId());
 
-        // === 8. 결제 처리 ===
+        // 8. 결제 처리
         PaymentResult paymentResult = paymentFacade.processPayment(
                 userId,
                 savedOrder.getId(),
@@ -134,13 +134,23 @@ public class OrderFacade {
                 paymentMethod
         );
 
-        // === 9. 결제 결과에 따른 주문 상태 업데이트 ===
-        if (!paymentResult.success()) {
-            savedOrder.cancel("결제 실패: " + paymentResult.message());
-
+        // 9. PG 결제 요청 결과에 따른 주문 상태 업데이트(실제 결제 성공은 콜백으로 받음)
+        if (paymentResult.success()) {
+            if (paymentType == PaymentType.POINT) {
+                // Point 결제는 즉시 완료 - 같은 트랜잭션에서 처리
+                savedOrder.complete();
+                log.info("포인트 결제 완료 - 주문 상태 PAID로 변경 - orderId: {}", savedOrder.getId());
+            } else {
+                // Card 실제 결제 완료/실패는 PaymentCallbackService에서 처리
+                // PG 콜백 대기 상태로 유지 (PROCESSING 상태)
+                log.info("카드 결제 요청 완료 - 콜백 대기 중 - orderId: {}, transactionId: {}", savedOrder.getId(), paymentResult.transactionId());
+            }
         } else {
-            if (paymentResult.status() == PaymentStatus.SUCCESS) {
-                savedOrder.complete();  // PAID 상태로
+            // 실패 케이스
+            String message = paymentResult.message();
+            // PG 요청 실패(사용자 문제, 잔액 부족 등) → paymentStatus: FAILED
+            if (paymentResult.status() == PaymentStatus.FAILED) {
+                log.warn("PG 결제 요청 실패 - orderId: {}, reason: {}", savedOrder.getId(), message);
             }
         }
 

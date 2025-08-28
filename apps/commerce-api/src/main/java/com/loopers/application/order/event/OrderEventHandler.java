@@ -1,12 +1,9 @@
 package com.loopers.application.order.event;
 
-import com.loopers.application.payment.event.PaymentCompletedEvent;
-import com.loopers.application.payment.event.PaymentFailedEvent;
+import com.loopers.application.payment.PaymentRecoveryService;
 import com.loopers.domain.coupon.UserCoupon;
 import com.loopers.domain.coupon.UserCouponRepository;
-import com.loopers.domain.order.Order;
 import com.loopers.domain.order.OrderRepository;
-import com.loopers.domain.payment.PaymentStatus;
 import com.loopers.support.error.CoreException;
 import com.loopers.support.error.ErrorType;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +22,7 @@ public class OrderEventHandler {
 
     private final OrderRepository orderRepository;
     private final UserCouponRepository userCouponRepository;
+    private final PaymentRecoveryService paymentRecoveryService;
 
     /**
      * 주문 생성 후 쿠폰 사용 처리
@@ -58,37 +56,6 @@ public class OrderEventHandler {
 
         userCoupon.use(); // AVAILABLE → USED
         log.info("쿠폰 사용 완료 - couponId: {}, userId: {}", couponId, userId);
-    }
-
-
-    /**
-     * 결제 성공 시 주문 완료 처리
-     */
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handlePaymentCompleted(PaymentCompletedEvent event) {
-        log.info("결제 성공 이벤트 처리 시작 - 주문 완료 - orderId: {}", event.orderId());
-
-        Order order = orderRepository.findByIdWithItems(event.orderId())
-                .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "주문을 찾을 수 없습니다."));
-
-        if (event.paymentStatus() == PaymentStatus.SUCCESS) {
-            order.complete();  // PAID 상태로
-            log.info("주문 완료 처리 완료 - orderId: {}", event.orderId());
-        }
-    }
-
-    /**
-     * 결제 실패 시 주문 취소 처리
-     */
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handlePaymentFailed(PaymentFailedEvent event) {
-        log.info("결제 실패 이벤트 처리 시작 - 주문 취소 - orderId: {}", event.orderId());
-
-        Order order = orderRepository.findByIdWithItems(event.orderId())
-                .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "주문을 찾을 수 없습니다."));
-
-        order.cancel("결제 실패: " + event.failureReason());
-        log.info("주문 취소 처리 완료 - orderId: {}", event.orderId());
     }
 
 }

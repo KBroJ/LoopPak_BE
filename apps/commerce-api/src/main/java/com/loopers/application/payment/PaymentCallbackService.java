@@ -1,5 +1,7 @@
 package com.loopers.application.payment;
 
+import com.loopers.application.payment.event.PaymentFailureEvent;
+import com.loopers.application.payment.event.PaymentSuccessEvent;
 import com.loopers.domain.order.Order;
 import com.loopers.domain.order.OrderRepository;
 import com.loopers.domain.payment.Payment;
@@ -10,6 +12,7 @@ import com.loopers.support.error.CoreException;
 import com.loopers.support.error.ErrorType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +27,7 @@ public class PaymentCallbackService {
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
     private final PaymentRecoveryService paymentRecoveryService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public void handlePaymentCallback(PgCallbackRequest callbackRequest) {
@@ -46,7 +50,8 @@ public class PaymentCallbackService {
         updatePaymentStatus(payment, callbackRequest);
 
         // 5. Order 상태 연동
-        updateRelatedOrderStatus(payment, callbackRequest.isSuccess());
+//        updateRelatedOrderStatus(payment, callbackRequest.isSuccess());
+        publishPaymentResultEvent(payment, callbackRequest);
 
         log.info("결제 콜백 처리 완료 - transactionKey: {}, success: {}",
                 callbackRequest.transactionKey(), callbackRequest.isSuccess());
@@ -100,6 +105,36 @@ public class PaymentCallbackService {
 
         } catch (Exception e) {
             log.error("주문 상태 업데이트 실패 - orderId: {}, error: {}", payment.getOrderId(), e.getMessage(), e);
+        }
+    }
+
+    private void publishPaymentResultEvent(Payment payment, PgCallbackRequest callbackRequest) {
+
+        Order order = orderRepository.findByIdWithItems(payment.getOrderId())
+                .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "주문을 찾을 수 없습니다."));
+
+        if (callbackRequest.isSuccess()) {
+            PaymentSuccessEvent successEvent = PaymentSuccessEvent.of(
+                    payment.getOrderId(),
+                    order.getUserId(),
+                    callbackRequest.transactionKey(),
+                    callbackRequest.amount(),
+                    callbackRequest.message(),
+                    callbackRequest.processedAt()
+            );
+            eventPublisher.publishEvent(successEvent);
+            log.info("결제 성공 이벤트 발행 - orderId: {}", payment.getOrderId());
+        } else {
+            PaymentFailureEvent failureEvent = PaymentFailureEvent.of(
+                    payment.getOrderId(),
+                    order.getUserId(),
+                    callbackRequest.transactionKey(),
+                    callbackRequest.amount(),
+                    callbackRequest.message(),
+                    callbackRequest.processedAt()
+            );
+            eventPublisher.publishEvent(failureEvent);
+            log.info("결제 실패 이벤트 발행 - orderId: {}", payment.getOrderId());
         }
     }
 
