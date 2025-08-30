@@ -8,6 +8,10 @@ import java.util.Optional;
 
 public interface LikeRepository {
     Optional<Like> findByUserIdAndTargetIdAndType(Long userId, Long targetId, LikeType likeType);
+    
+    Optional<Like> findByUserIdAndTargetIdAndTypeWithLock(Long userId, Long targetId, LikeType likeType);
+    
+    int upsertLike(Long userId, Long targetId, LikeType likeType);
 
     void save(Like like);
 

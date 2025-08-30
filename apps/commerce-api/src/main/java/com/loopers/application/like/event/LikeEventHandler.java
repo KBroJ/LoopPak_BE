@@ -8,8 +8,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -24,8 +26,9 @@ public class LikeEventHandler {
     private final ProductService productService;
     private final ProductCacheRepository productCacheRepository;
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     @EventListener
+    @Async
     public void handleLikeAdded(LikeAddedEvent event) {
         log.info("좋아요 추가 이벤트 처리 시작 - userId: {}, targetId: {}, likeType: {}", 
                 event.userId(), event.targetId(), event.likeType());
@@ -37,8 +40,9 @@ public class LikeEventHandler {
         log.info("좋아요 추가 집계 처리 완료 - targetId: {}", event.targetId());
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     @EventListener
+    @Async
     public void handleLikeRemoved(LikeRemovedEvent event) {
         log.info("좋아요 제거 이벤트 처리 시작 - userId: {}, targetId: {}, likeType: {}", 
                 event.userId(), event.targetId(), event.likeType());

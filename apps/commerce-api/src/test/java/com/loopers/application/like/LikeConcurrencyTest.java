@@ -90,8 +90,8 @@ class LikeConcurrencyTest {
         }
         latch.await();
         
-        // 이벤트 처리 완료를 위한 대기
-        Thread.sleep(3000);
+        // @TransactionalEventListener(AFTER_COMMIT) 처리 완료를 위한 대기
+        Thread.sleep(5000);
 
         // assert
         Product updatedProduct = productRepository.productInfo(product.productId()).orElseThrow();
