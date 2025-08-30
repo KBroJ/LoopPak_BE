@@ -35,6 +35,8 @@ public interface LikeJpaRepository extends JpaRepository<Like, Long> {
                    @Param("type") String type);
 
     List<Like> findByUserIdAndType(Long userId, LikeType likeType);
+    
+    List<Like> findByTargetIdAndType(Long targetId, LikeType likeType);
 
     @Query("SELECT new com.loopers.domain.like.LikeCountDto(l.targetId, COUNT(l)) " +
             "FROM Like l " +

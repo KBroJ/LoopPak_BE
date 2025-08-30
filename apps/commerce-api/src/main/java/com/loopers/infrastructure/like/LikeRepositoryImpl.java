@@ -49,6 +49,11 @@ public class LikeRepositoryImpl implements LikeRepository {
     }
 
     @Override
+    public List<Like> findByTargetIdAndType(Long targetId, LikeType likeType) {
+        return likeJpaRepository.findByTargetIdAndType(targetId, likeType);
+    }
+
+    @Override
     public List<LikeCountDto> countByTargetIdIn(List<Long> targetIds, LikeType type) {
         return likeJpaRepository.countByTargetIdIn(targetIds, type);
     }

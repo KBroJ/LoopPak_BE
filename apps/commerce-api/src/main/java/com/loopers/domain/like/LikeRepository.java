@@ -18,6 +18,8 @@ public interface LikeRepository {
     void delete(Like like);
 
     List<Like> findByUserIdAndType(Long userId, LikeType likeType);
+    
+    List<Like> findByTargetIdAndType(Long targetId, LikeType likeType);
 
     List<LikeCountDto> countByTargetIdIn(List<Long> targetIds, LikeType type);
 
