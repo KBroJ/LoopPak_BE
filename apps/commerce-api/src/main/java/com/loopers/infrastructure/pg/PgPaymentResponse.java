@@ -19,7 +19,7 @@ public record PgPaymentResponse(
             String transactionKey,
 
             @JsonProperty("status")
-            String status
+            PgPaymentStatus status
     ) {}
 
     public boolean isSuccess() {
@@ -30,18 +30,18 @@ public record PgPaymentResponse(
         return data != null ? data.transactionKey() : null;
     }
 
-    public String getStatus() {
+    public PgPaymentStatus getStatus() {
         return data != null ? data.status() : null;
     }
 
-    public static PgPaymentResponse success(String transactionKey, String status) {
+    public static PgPaymentResponse success(String transactionKey, PgPaymentStatus status) {
         return new PgPaymentResponse(
                 new Meta("SUCCESS"),
                 new Data(transactionKey, status)
         );
     }
 
-    public static PgPaymentResponse failure(String status) {
+    public static PgPaymentResponse failure(PgPaymentStatus status) {
         return new PgPaymentResponse(
                 new Meta("FAILED"),
                 new Data(null, status)

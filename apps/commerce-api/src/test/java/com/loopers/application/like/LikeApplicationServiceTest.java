@@ -16,6 +16,7 @@ import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.util.List;
 import java.util.Optional;
@@ -109,7 +110,7 @@ class LikeApplicationServiceTest {
         void increaseLikeCount_whenLiked() {
             // act
             likeFacade.like(userInfo.id(), product1.getId(), LikeType.PRODUCT);
-
+            
             // assert
             Optional<Like> result = likeRepository.findByUserIdAndTargetIdAndType(userInfo.id(), product1.getId(), LikeType.PRODUCT);
             assertThat(result).isPresent();

@@ -7,6 +7,7 @@ import com.loopers.domain.payment.PaymentRepository;
 import com.loopers.infrastructure.pg.PgClient;
 import com.loopers.infrastructure.pg.PgPaymentRequest;
 import com.loopers.infrastructure.pg.PgPaymentResponse;
+import com.loopers.infrastructure.pg.PgPaymentStatus;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
@@ -49,7 +50,7 @@ public class PgPaymentService {
         // Fallback 시 실패 응답 생성
         return new PgPaymentResponse(
                 new PgPaymentResponse.Meta("FAILURE"),
-                new PgPaymentResponse.Data("FALLBACK_" + orderId + "_" + System.currentTimeMillis(), "FAILED")
+                new PgPaymentResponse.Data(null, PgPaymentStatus.FAILED)
         );
     }
 
@@ -86,14 +87,13 @@ public class PgPaymentService {
     }
 
     private void updatePaymentStatus(Payment payment, PgPaymentResponse response) {
-        if (response.isSuccess() && "SUCCESS".equals(response.getStatus())) {
+        if (response.isSuccess() && response.getStatus() == PgPaymentStatus.SUCCESS) {
             payment.markAsSuccess(response.getTransactionKey());
             log.info("결제 성공 처리 완료 - transactionKey: {}", response.getTransactionKey());
-        } else if (response.isSuccess() && "FAILED".equals(response.getStatus())) {
+        } else if (response.isSuccess() && response.getStatus() == PgPaymentStatus.FAILED) {
             payment.markAsFailed();
             log.warn("결제 실패 처리 완료 - transactionKey: {}", response.getTransactionKey());
         }
-        // PENDING 상태는 그대로 유지
     }
 
     /**
@@ -123,7 +123,7 @@ public class PgPaymentService {
         // Fallback: PG 상태를 알 수 없으므로 UNKNOWN 상태로 응답
         return new PgPaymentResponse(
                 new PgPaymentResponse.Meta("FAILURE"),
-                new PgPaymentResponse.Data(transactionKey, "UNKNOWN")
+                new PgPaymentResponse.Data(transactionKey, PgPaymentStatus.UNKNOWN)
         );
     }
 

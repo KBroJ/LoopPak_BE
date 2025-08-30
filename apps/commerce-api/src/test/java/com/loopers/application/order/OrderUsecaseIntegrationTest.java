@@ -151,7 +151,7 @@ class OrderUsecaseIntegrationTest {
         }
     }
 
-    @DisplayName("내 주문 목록 조회 시, 요약 정보가 페이징 처리되어 정확히 반환된다.")
+    @DisplayName("내 주문 목록 조회 시, 요약 정보가 페이밍 처리되어 정확히 반환된다.")
     @Test
     void getMyOrders_returnsCorrectOrderSummary() {
         // act

@@ -40,3 +40,9 @@ out/
 .kotlin
 
 **/generated/
+CLAUDE.md
+CLAUDE.md.SSW
+CLAUDE_5.md
+CLAUDE_6.md
+nul
+.claude/settings.local.json

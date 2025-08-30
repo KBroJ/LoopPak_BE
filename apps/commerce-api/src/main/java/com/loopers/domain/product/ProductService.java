@@ -52,6 +52,22 @@ public class ProductService {
         return productRepository.productInfo(productId);
     }
 
+    @Transactional
+    public void increaseLikeCount(Long productId) {
+        Product product = productRepository.productInfo(productId)
+                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+        product.increaseLikeCount();
+        productRepository.save(product);
+    }
+
+    @Transactional
+    public void decreaseLikeCount(Long productId) {
+        Product product = productRepository.productInfo(productId)
+                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+        product.decreaseLikeCount();
+        productRepository.save(product);
+    }
+
     @Transactional(readOnly = true)
     public Page<Product> findProductsByIds(List<Long> productIds, Pageable pageable) {
         if (productIds == null || productIds.isEmpty()) {

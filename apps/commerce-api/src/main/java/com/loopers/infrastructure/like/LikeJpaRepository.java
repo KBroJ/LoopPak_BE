@@ -6,9 +6,12 @@ import com.loopers.domain.like.LikeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import jakarta.persistence.LockModeType;
 
 import java.util.List;
 import java.util.Optional;
@@ -16,6 +19,20 @@ import java.util.Optional;
 public interface LikeJpaRepository extends JpaRepository<Like, Long> {
 
     Optional<Like> findByUserIdAndTargetIdAndType(Long userId, Long targetId, LikeType likeType);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT l FROM Like l WHERE l.userId = :userId AND l.targetId = :targetId AND l.type = :type")
+    Optional<Like> findByUserIdAndTargetIdAndTypeWithLock(@Param("userId") Long userId, @Param("targetId") Long targetId, @Param("type") LikeType type);
+
+    @Modifying
+    @Query(value = """
+        INSERT INTO likes (user_id, target_id, type, created_at, updated_at) 
+        VALUES (:userId, :targetId, :type, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE updated_at = NOW()
+        """, nativeQuery = true)
+    int upsertLike(@Param("userId") Long userId, 
+                   @Param("targetId") Long targetId, 
+                   @Param("type") String type);
 
     List<Like> findByUserIdAndType(Long userId, LikeType likeType);
 
