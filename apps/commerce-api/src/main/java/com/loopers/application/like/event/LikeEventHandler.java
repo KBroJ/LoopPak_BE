@@ -1,11 +1,8 @@
 package com.loopers.application.like.event;
 
 import com.loopers.domain.like.LikeType;
-import com.loopers.domain.product.Product;
 import com.loopers.domain.product.ProductCacheRepository;
-import com.loopers.domain.product.ProductRepository;
-import com.loopers.support.error.CoreException;
-import com.loopers.support.error.ErrorType;
+import com.loopers.domain.product.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -24,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class LikeEventHandler {
 
-    private final ProductRepository productRepository;
+    private final ProductService productService;
     private final ProductCacheRepository productCacheRepository;
 
     @Transactional
@@ -60,16 +57,12 @@ public class LikeEventHandler {
     )
     private void processProductLikeIncrease(Long productId) {
         try {
-            Product product = productRepository.productInfo(productId)
-                    .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "상품을 찾을 수 없습니다."));
-            
-            product.increaseLikeCount();
-            productRepository.save(product);
+            productService.increaseLikeCount(productId);
             
             // Redis 캐시 삭제(상품의 총 좋아요 수)
             productCacheRepository.evictProductDetail(productId);
             
-            log.info("상품 좋아요 수 증가 완료 - productId: {}, 현재 좋아요 수: {}", productId, product.getLikeCount());
+            log.info("상품 좋아요 수 증가 완료 - productId: {}", productId);
         } catch (Exception e) {
             log.error("상품 좋아요 수 증가 실패 - productId: {}, error: {}", productId, e.getMessage(), e);
             throw e;
@@ -83,16 +76,12 @@ public class LikeEventHandler {
     )
     private void processProductLikeDecrease(Long productId) {
         try {
-            Product product = productRepository.productInfo(productId)
-                    .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "상품을 찾을 수 없습니다."));
-            
-            product.decreaseLikeCount();
-            productRepository.save(product);
+            productService.decreaseLikeCount(productId);
             
             // Redis 캐시 삭제(상품의 총 좋아요 수)
             productCacheRepository.evictProductDetail(productId);
             
-            log.info("상품 좋아요 수 감소 완료 - productId: {}, 현재 좋아요 수: {}", productId, product.getLikeCount());
+            log.info("상품 좋아요 수 감소 완료 - productId: {}", productId);
         } catch (Exception e) {
             log.error("상품 좋아요 수 감소 실패 - productId: {}, error: {}", productId, e.getMessage(), e);
             throw e;

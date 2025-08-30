@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +29,11 @@ public class LikeFacade {
      * 좋아요 처리(핵심)와 집계 처리(후속)를 이벤트로 분리
      */
     @Transactional
+    @Retryable(
+            value = { DataIntegrityViolationException.class },
+            maxAttempts = 10,
+            backoff = @Backoff(delay = 50, multiplier = 1.5, maxDelay = 1000)
+    )
     public void like(Long userId, Long productId, LikeType likeType) {
         try {
             Optional<Like> exist = likeRepository.findByUserIdAndTargetIdAndType(userId, productId, likeType);
