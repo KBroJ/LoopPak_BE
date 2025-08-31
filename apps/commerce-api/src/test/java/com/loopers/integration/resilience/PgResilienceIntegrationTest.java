@@ -160,9 +160,7 @@ class PgResilienceIntegrationTest {
                 testUser.id(), testOrder.getId(), 20000L, PaymentType.CARD, paymentMethod
             );
             
-            // Fallback 응답인지 확인 (transactionKey가 FALLBACK_로 시작)
-            if (!result.success() && result.transactionId() != null && 
-                result.transactionId().startsWith("FALLBACK_")) {
+            if (!result.success() && result.status() == PaymentStatus.PENDING && result.transactionId() == null) {
                 fallbackCount++;
                 System.out.println("🛡️ [Fallback 테스트] " + (i+1) + "번째 요청 - Fallback 동작!");
             }
@@ -207,7 +205,7 @@ class PgResilienceIntegrationTest {
             long duration = System.currentTimeMillis() - startTime;
             
             // CircuitBreaker가 열렸거나 Fallback이면 즉시 실패 (매우 빠름)
-            boolean isFallback = result.transactionId() != null && result.transactionId().startsWith("FALLBACK_");
+            boolean isFallback = result.transactionId() == null && result.status() == PaymentStatus.PENDING;
             
             // 매우 빠른 응답(50ms 미만)이면서 실패하거나, Fallback 응답이면 CircuitBreaker가 작동한 것
             if ((duration < 50 && (!result.success() || isFallback)) || isFallback) {
@@ -287,7 +285,7 @@ class PgResilienceIntegrationTest {
             PaymentResult result = futures[i].get();
             if (result.success()) {
                 successCount++;
-            } else if (result.transactionId() != null && result.transactionId().startsWith("FALLBACK_")) {
+            } else if (result.transactionId() == null && result.status() == PaymentStatus.PENDING) {
                 fallbackCount++;
             }
         }

@@ -10,6 +10,7 @@ import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Comparator;
 import java.util.List;
@@ -72,17 +73,17 @@ class ProductUseCaseIntegrationTest {
     class SearchProducts {
         @DisplayName("성공: 기본 조건(최신순)으로 조회 시 활성화된 모든 상품이 최신순으로 반환된다.")
         @Test
-        void returnAllActiveProducts_whenSearchWithDefaultConditions() throws InterruptedException {
+        void returnAllActiveProducts_whenSearchWithDefaultConditions() {
             // arrange
             ProductResponse p1 = productFacade.create(brandAId, "활성상품1", "설명", 100, 10, 10, ProductStatus.ACTIVE);
-            Thread.sleep(10); // 생성 시간차를 두기 위함
+            // 생성 시간차는 테스트에서 필요하지 않으므로 제거
             ProductResponse p2 = productFacade.create(brandBId, "활성상품2", "설명", 200, 10, 10, ProductStatus.ACTIVE);
             productFacade.create(brandAId, "비활성상품", "설명", 300, 10, 10, ProductStatus.INACTIVE);
 
             LikeFacade.like(1L, p1.productId(), LikeType.PRODUCT);
             LikeFacade.like(2L, p1.productId(), LikeType.PRODUCT);
             LikeFacade.like(1L, p2.productId(), LikeType.PRODUCT);
-
+            
             // act
             Page<ProductResponse> result = productQueryService.searchProducts(null, "latest", 0, 10);
             List<ProductResponse> content = result.getContent();
@@ -165,7 +166,7 @@ class ProductUseCaseIntegrationTest {
             ProductResponse created = productFacade.create(brandAId, "테스트상품", "설명", 200, 10, 10, ProductStatus.ACTIVE);
             LikeFacade.like(1L, created.productId(), LikeType.PRODUCT);
             LikeFacade.like(2L, created.productId(), LikeType.PRODUCT);
-
+            
             // act
             ProductResponse result = productQueryService.getProductDetail(created.productId());
 

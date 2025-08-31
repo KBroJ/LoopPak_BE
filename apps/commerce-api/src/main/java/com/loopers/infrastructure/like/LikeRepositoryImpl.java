@@ -24,6 +24,16 @@ public class LikeRepositoryImpl implements LikeRepository {
     }
 
     @Override
+    public Optional<Like> findByUserIdAndTargetIdAndTypeWithLock(Long userId, Long targetId, LikeType likeType) {
+        return likeJpaRepository.findByUserIdAndTargetIdAndTypeWithLock(userId, targetId, likeType);
+    }
+
+    @Override
+    public int upsertLike(Long userId, Long targetId, LikeType likeType) {
+        return likeJpaRepository.upsertLike(userId, targetId, likeType.name());
+    }
+
+    @Override
     public void save(Like like) {
         likeJpaRepository.save(like);
     }
@@ -36,6 +46,11 @@ public class LikeRepositoryImpl implements LikeRepository {
     @Override
     public List<Like> findByUserIdAndType(Long userId, LikeType likeType) {
         return likeJpaRepository.findByUserIdAndType(userId, likeType);
+    }
+
+    @Override
+    public List<Like> findByTargetIdAndType(Long targetId, LikeType likeType) {
+        return likeJpaRepository.findByTargetIdAndType(targetId, likeType);
     }
 
     @Override

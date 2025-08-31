@@ -14,6 +14,7 @@ import com.loopers.domain.payment.*;
 import com.loopers.domain.product.ProductStatus;
 import com.loopers.infrastructure.pg.PgClient;
 import com.loopers.infrastructure.pg.PgPaymentResponse;
+import com.loopers.infrastructure.pg.PgPaymentStatus;
 import com.loopers.interfaces.api.ApiResponse;
 import com.loopers.utils.DatabaseCleanUp;
 import org.junit.jupiter.api.AfterEach;
@@ -211,7 +212,7 @@ class PaymentV1ApiE2ETest {
         paymentRepository.save(payment);
 
         // PG에서 SUCCESS 상태 응답하도록 Mock 설정
-        PgPaymentResponse pgResponse = PgPaymentResponse.success(transactionKey, "SUCCESS");
+        PgPaymentResponse pgResponse = PgPaymentResponse.success(transactionKey, PgPaymentStatus.SUCCESS);
         when(pgClient.getPayment(anyString(), anyString())).thenReturn(pgResponse);
 
         String syncUrl = "/api/v1/payments/sync-status";

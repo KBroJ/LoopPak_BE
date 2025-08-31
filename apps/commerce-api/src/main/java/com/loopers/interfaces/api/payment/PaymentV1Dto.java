@@ -20,7 +20,7 @@ public class PaymentV1Dto {
                     info.orderId(),
                     info.paymentId(),
                     info.ourStatus(),
-                    info.pgStatus(),
+                    info.pgStatus().name(),
                     info.isSync(),
                     info.message()
             );
