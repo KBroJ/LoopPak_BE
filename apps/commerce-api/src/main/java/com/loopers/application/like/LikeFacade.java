@@ -5,6 +5,7 @@ import com.loopers.application.like.event.LikeRemovedEvent;
 import com.loopers.domain.like.Like;
 import com.loopers.domain.like.LikeRepository;
 import com.loopers.domain.like.LikeType;
+import com.loopers.infrastructure.kafka.KafkaEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -25,6 +26,7 @@ public class LikeFacade {
 
     private final LikeRepository likeRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final KafkaEventPublisher kafkaEventPublisher;
 
     /**
      * 상품에 '좋아요'를 등록합니다.
@@ -41,7 +43,10 @@ public class LikeFacade {
                 
                 // 이벤트 발행 - 삽입/업데이트된 경우에만
                 LikeAddedEvent event = LikeAddedEvent.of(userId, productId, likeType);
-                eventPublisher.publishEvent(event);
+//                eventPublisher.publishEvent(event);
+                // Kafka 이벤트 발행
+                kafkaEventPublisher.publish("catalog-events", productId.toString(), event);
+
                 log.info("좋아요 추가 이벤트 발행 - userId: {}, targetId: {}", userId, productId);
             }
             
@@ -73,7 +78,9 @@ public class LikeFacade {
 
                 // 2. 후속 처리: 집계 이벤트 발행 (커밋 후 처리)
                 LikeRemovedEvent event = LikeRemovedEvent.of(userId, productId, likeType);
-                eventPublisher.publishEvent(event);
+//                eventPublisher.publishEvent(event);
+                kafkaEventPublisher.publish("catalog-events", productId.toString(), event);
+                
                 log.info("좋아요 제거 이벤트 발행 - userId: {}, targetId: {}", userId, productId);
             } else {
                 log.debug("취소할 좋아요가 존재하지 않음 - userId: {}, targetId: {}", userId, productId);
