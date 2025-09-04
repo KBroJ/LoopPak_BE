@@ -1,6 +1,7 @@
 package com.loopers.consumer;
 
 import com.loopers.collector.application.cache.CacheEvictService;
+import com.loopers.collector.application.eventhandled.EventHandledService;
 import com.loopers.collector.application.eventlog.EventLogService;
 import com.loopers.collector.application.metrics.MetricsService;
 import com.loopers.collector.common.EventDeserializer;
@@ -29,6 +30,7 @@ public class CatalogEventConsumer {
     private final EventLogService eventLogService;
     private final CacheEvictService cacheEvictService;
     private final MetricsService metricsService;
+    private final EventHandledService eventHandledService;
     private final EventDeserializer eventDeserializer;
 
     /**
@@ -49,14 +51,24 @@ public class CatalogEventConsumer {
             @Header(KafkaHeaders.RECEIVED_KEY) String messageKey,   // 파티션 키(productId)
             Acknowledgment ack                                      // 수동 ACK : 메시지 처리 완료 확인용
     ) {
-        log.info("Catalog 이벤트 수신 - topic: {}, partition: {}, offset: {}, key: {}", topic, partition, offset, messageKey);
+
+        // eventId 생성 (멱등성 처리용 고유 키)
+        String eventId = topic + "-" + partition + "-" + offset;
+        log.info("Catalog 이벤트 수신 - topic: {}, partition: {}, offset: {}, eventId: {}, key: {}", topic, partition, offset, eventId, messageKey);
+
+        // 중복 처리 확인 (멱등성 체크)
+        if (eventHandledService.isAlreadyHandled(eventId)) {
+            log.info("이미 처리된 이벤트 - eventId: {}", eventId);
+            ack.acknowledge(); // 중복이면 바로 ACK하고 종료
+            return;
+        }
 
         try {
-            // 1. 이벤트 타입 감지
+            // 이벤트 타입 감지
             String eventType = eventDeserializer.detectEventType(message);
             log.info("이벤트 타입 감지: {}", eventType);
 
-            // 2. 이벤트 타입별 처리 분기
+            // 이벤트 타입별 처리 분기
             switch (eventType) {
                 case "LikeAddedEvent" -> handleLikeAddedEvent(message, messageKey);
                 case "LikeRemovedEvent" -> handleLikeRemovedEvent(message, messageKey);
@@ -67,7 +79,10 @@ public class CatalogEventConsumer {
                 }
             }
 
-            // 3. 메시지 처리 완료 확인 (Manual ACK)
+            // 처리 완료 기록 (멱등성 보장)
+            eventHandledService.markAsHandled(eventId, eventType, messageKey);
+
+            // 메시지 처리 완료 확인 (Manual ACK)
             ack.acknowledge();
             log.info("Catalog 이벤트 처리 완료 - eventType: {}, key: {}", eventType, messageKey);
 
