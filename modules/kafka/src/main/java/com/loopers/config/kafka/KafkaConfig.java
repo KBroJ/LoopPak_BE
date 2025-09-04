@@ -2,6 +2,8 @@ package com.loopers.config.kafka;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,6 +17,7 @@ import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.support.converter.BatchMessagingMessageConverter;
 import org.springframework.kafka.support.converter.ByteArrayJsonMessageConverter;
+import org.springframework.kafka.support.serializer.JsonSerializer;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -35,6 +38,17 @@ public class KafkaConfig {
     @Bean
     public ProducerFactory<Object, Object> producerFactory(KafkaProperties kafkaProperties) {
         Map<String, Object> props = new HashMap<>(kafkaProperties.buildProducerProperties());
+
+        // 직렬화 설정 명시적으로 지정 (테스트 환경 대응)
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);  // Key를 String으로 직렬화(productId 등)
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);  // Value를 JSON으로 직렬화(Event객체 → JSON)
+
+        // At Least Once 메시지 전달 보장을 위한 Producer 설정
+        // - 네트워크 장애나 일시적 오류 상황에서도 메시지가 최소 한 번은 전달되도록 보장
+        props.put(ProducerConfig.ACKS_CONFIG, "all");                                   // 모든 replicas가 메시지를 받을 때까지 대기(최고 수준 내구성)
+        props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);                      // Producer 레벨에서 중복 메시지 방지 (정확히 한번 전송 보장)
+        props.put(ProducerConfig.RETRIES_CONFIG, 3);                                    // 전송 실패 시 최대 3번까지 재시도
+
         return new DefaultKafkaProducerFactory<>(props);
     }
 
