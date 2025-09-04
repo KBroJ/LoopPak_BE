@@ -1,7 +1,7 @@
 package com.loopers.consumer;
 
 import com.loopers.collector.application.cache.CacheEvictService;
-import com.loopers.collector.application.eventlog.AuditLogService;
+import com.loopers.collector.application.eventlog.EventLogService;
 import com.loopers.collector.application.metrics.MetricsService;
 import com.loopers.collector.common.EventDeserializer;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +26,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class CatalogEventConsumer {
 
-    private final AuditLogService auditLogService;
+    private final EventLogService eventLogService;
     private final CacheEvictService cacheEvictService;
     private final MetricsService metricsService;
     private final EventDeserializer eventDeserializer;
@@ -63,7 +63,7 @@ public class CatalogEventConsumer {
                 default -> {
                     log.warn("처리할 수 없는 이벤트 타입 - eventType: {}, message: {}", eventType, message);
                     // 알 수 없는 이벤트도 감사 로그는 저장
-                    auditLogService.saveEventLog(message, eventType, messageKey, "UNKNOWN");
+                    eventLogService.saveEventLog(message, eventType, messageKey, "UNKNOWN");
                 }
             }
 
@@ -93,7 +93,7 @@ public class CatalogEventConsumer {
             Long productIdLong = Long.parseLong(productId);
 
             // 1. 감사 로그 저장
-            auditLogService.saveEventLog(likeAddedEvent, "LikeAddedEvent", productId, "PRODUCT");
+            eventLogService.saveEventLog(likeAddedEvent, "LikeAddedEvent", productId, "PRODUCT");
 
             // 2. 상품 관련 캐시 무효화
             cacheEvictService.evictProductCache(productIdLong);
@@ -122,7 +122,7 @@ public class CatalogEventConsumer {
             Long productIdLong = Long.parseLong(productId);
 
             // 1. 감사 로그 저장
-            auditLogService.saveEventLog(likeRemovedEvent, "LikeRemovedEvent", productId, "PRODUCT");
+            eventLogService.saveEventLog(likeRemovedEvent, "LikeRemovedEvent", productId, "PRODUCT");
 
             // 2. 상품 관련 캐시 무효화
             cacheEvictService.evictProductCache(productIdLong);
