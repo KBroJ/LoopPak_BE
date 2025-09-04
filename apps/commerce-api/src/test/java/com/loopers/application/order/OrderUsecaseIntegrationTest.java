@@ -48,7 +48,11 @@ class OrderUsecaseIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        testUser = userAppService.saveUser("testuser", "MALE", "2000-01-01", "test@test.com");
+        // 타임스탬프의 마지막 6자리만 사용 (영문+숫자, 10자 이내)
+        String timestamp = String.valueOf(System.currentTimeMillis()).substring(7); // 뒤 6자리
+        String uniqueUserId = "test" + timestamp; // test123456 형태 (10자 이내)
+        String uniqueEmail = "test" + timestamp + "@test.com";
+        testUser = userAppService.saveUser(uniqueUserId, "MALE", "2000-01-01", uniqueEmail);
 
         BrandInfo brand = brandAppService.create("테스트브랜드", "", true);
         product1 = productService.create(Product.of(brand.id(), "상품1", "", 10000, 10, 10, ProductStatus.ACTIVE));

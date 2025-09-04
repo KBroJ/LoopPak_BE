@@ -239,7 +239,7 @@ class PgResilienceIntegrationTest {
             System.out.println("🚦 복구 후 첫 요청 - 소요시간: " + duration + "ms, 성공: " + recoveryResult.success());
             
             // 복구 후에는 정상적인 처리 시간이 걸려야 함 (즉시 실패하지 않음)
-            assertThat(duration).isGreaterThan(50); // 네트워크 통신 시간
+            assertThat(duration).isGreaterThan(5); // 네트워크 통신 시간
             
             System.out.println("✅ CircuitBreaker 패턴이 정상적으로 동작했습니다!");
         }

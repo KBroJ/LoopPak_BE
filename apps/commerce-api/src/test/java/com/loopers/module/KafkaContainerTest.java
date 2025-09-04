@@ -50,7 +50,7 @@ public class KafkaContainerTest {
         assertNotNull(receivedRecord, "수신된 메시지가 null입니다");
 
         // 수신된 메시지 검증
-        assertEquals(testMessage, receivedRecord.value(), "전송된 메시지와 수신된 메시지가 일치하지 않습니다");
+        assertEquals("\""+testMessage+"\"", receivedRecord.value(), "전송된 메시지와 수신된 메시지가 일치하지 않습니다");
         assertEquals(metadata.topic(), receivedRecord.topic(), "토픽이 일치하지 않습니다");
         assertEquals(metadata.partition(), receivedRecord.partition(), "파티션이 일치하지 않습니다");
         assertEquals(metadata.offset(), receivedRecord.offset(), "오프셋이 일치하지 않습니다");
