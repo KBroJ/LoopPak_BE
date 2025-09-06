@@ -1,10 +1,8 @@
 package com.loopers.consumer;
 
-import com.loopers.collector.application.cache.CacheEvictService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.loopers.collector.application.eventhandled.EventHandledService;
-import com.loopers.collector.application.eventlog.EventLogService;
-import com.loopers.collector.application.metrics.MetricsService;
-import com.loopers.collector.common.EventDeserializer;
+import com.loopers.consumer.handler.EventHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -14,29 +12,41 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 /**
  * catalog-events 토픽의 이벤트를 소비하는 Consumer
- * 좋아요, 상품 조회 등 상품 카탈로그 관련 이벤트 처리
  *
- *  kafkaTemplate.send([토픽], [키], [메시지(@Payload)])
- *  @Payload - "실제 메시지 내용"
- *  @Header - "메시지 메타정보"
+ * 역할:
+ * - Kafka 메시지 수신 및 EventEnvelope 파싱
+ * - 적절한 EventHandler로 라우팅
+ * - 멱등성 처리 및 Manual ACK
+ * - 단일 책임 원칙 적용 (라우팅만 담당)
+ * - EventHandler 패턴으로 도메인별 처리 분리
+ *
+ * EventEnvelope 패턴을 사용하여 표준화된 이벤트 처리:
+ * - eventType으로 이벤트 타입 식별
+ * - eventId로 멱등성 보장
+ * - payload에서 실제 이벤트 데이터 추출
+ *
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class CatalogEventConsumer {
 
-    private final EventLogService eventLogService;
-    private final CacheEvictService cacheEvictService;
-    private final MetricsService metricsService;
     private final EventHandledService eventHandledService;
-    private final EventDeserializer eventDeserializer;
+    private final ObjectMapper objectMapper;        // JSON 직렬화용
+    private final List<EventHandler> eventHandlers; // Spring이 자동으로 모든 EventHandler 주입
 
     /**
      * catalog-events 토픽 메시지 처리
      *
-     * PartitionKey로 productId를 사용하므로 같은 상품의 이벤트는 순서 보장됨
+     * 처리 흐름:
+     * 1. EventEnvelope 파싱
+     * 2. 멱등성 체크 (중복 처리 방지)
+     * 3. 적절한 EventHandler 찾아서 위임
+     * 4. 처리 완료 기록 및 ACK
      */
     @KafkaListener(
             topics = "catalog-events",
@@ -44,7 +54,7 @@ public class CatalogEventConsumer {
             containerFactory = "kafkaListenerContainerFactory"
     )
     public void handleCatalogEvent(
-            @Payload String message,                                // 메시지 내용(@Payload : 실제 메시지 내용)
+            @Payload String message,                                // 메시지 내용(@Payload : 실제 메시지 내용, EventEnvelope JSON 문자열)
             @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,      // 토픽명
             @Header(KafkaHeaders.RECEIVED_PARTITION) int partition, // 파티션 번호
             @Header(KafkaHeaders.OFFSET) long offset,               // 오프셋(메시지 순번)
@@ -52,37 +62,56 @@ public class CatalogEventConsumer {
             Acknowledgment ack                                      // 수동 ACK : 메시지 처리 완료 확인용
     ) {
 
-        // eventId 생성 (멱등성 처리용 고유 키)
-        String eventId = topic + "-" + partition + "-" + offset;
-        log.info("Catalog 이벤트 수신 - topic: {}, partition: {}, offset: {}, eventId: {}, key: {}", topic, partition, offset, eventId, messageKey);
-
-        // 중복 처리 확인 (멱등성 체크)
-        if (eventHandledService.isAlreadyHandled(eventId)) {
-            log.info("이미 처리된 이벤트 - eventId: {}", eventId);
-            ack.acknowledge(); // 중복이면 바로 ACK하고 종료
-            return;
-        }
-
         try {
-            // 이벤트 타입 감지
-            String eventType = eventDeserializer.detectEventType(message);
-            log.info("이벤트 타입 감지: {}", eventType);
 
-            // 이벤트 타입별 처리 분기
-            switch (eventType) {
-                case "LikeAddedEvent" -> handleLikeAddedEvent(message, messageKey);
-                case "LikeRemovedEvent" -> handleLikeRemovedEvent(message, messageKey);
-                default -> {
-                    log.warn("처리할 수 없는 이벤트 타입 - eventType: {}, message: {}", eventType, message);
-                    // 알 수 없는 이벤트도 감사 로그는 저장
-                    eventLogService.saveEventLog(message, eventType, messageKey, "UNKNOWN");
-                }
+            // EventEnvelope 파싱(Producer에서 감싼 구조 해제)
+            EventEnvelope envelope;
+            try {
+                envelope = objectMapper.readValue(message, EventEnvelope.class);
+            } catch (Exception parseException) {
+                log.error("EventEnvelope 파싱 실패 - message: {}, error: {}",
+                        message, parseException.getMessage());
+                throw new RuntimeException("EventEnvelope 파싱 실패", parseException);
             }
 
-            // 처리 완료 기록 (멱등성 보장)
+            String eventType = envelope.eventType();
+            String eventId = envelope.eventId();    // Producer에서 생성한 고유 ID 사용(멱등성 처리용 고유 키)
+            Object payload = envelope.payload();    // 실제 이벤트 데이터
+
+            log.info("Catalog 이벤트 수신 - eventType: {}, eventId: {}, key: {}", eventType, eventId, messageKey);
+
+            // 중복 처리 확인 (멱등성 체크)
+            if (eventHandledService.isAlreadyHandled(eventId)) {
+                log.info("이미 처리된 이벤트 - eventId: {}", eventId);
+                ack.acknowledge(); // 중복이면 바로 ACK하고 종료
+                return;
+            }
+
+            // 3. payload를 JSON으로 변환 (EventHandler들이 JSON 문자열을 받도록 설계)
+            String payloadJson;
+            try {
+                payloadJson = objectMapper.writeValueAsString(payload);
+            } catch (Exception jsonException) {
+                log.error("payload JSON 변환 실패 - eventType: {}, eventId: {}, error: {}",
+                        eventType, eventId, jsonException.getMessage());
+                throw new RuntimeException("payload JSON 변환 실패", jsonException);
+            }
+
+            // 4. 적절한 EventHandler 찾아서 위임
+            EventHandler handler = findEventHandler(eventType);
+            if (handler != null) {
+                handler.handle(eventType, payloadJson, messageKey);
+                log.debug("이벤트 처리 완료 - eventType: {}, handler: {}",
+                        eventType, handler.getClass().getSimpleName());
+            } else {
+                // 알 수 없는 이벤트는 단순히 로그만 남김
+                log.warn("처리할 수 있는 Handler가 없음 - eventType: {}", eventType);
+            }
+
+            // 5. 처리 완료 기록 (멱등성 보장)
             eventHandledService.markAsHandled(eventId, eventType, messageKey);
 
-            // 메시지 처리 완료 확인 (Manual ACK)
+            // 6. 메시지 처리 완료 확인 (Manual ACK)
             ack.acknowledge();
             log.info("Catalog 이벤트 처리 완료 - eventType: {}, key: {}", eventType, messageKey);
 
@@ -96,62 +125,16 @@ public class CatalogEventConsumer {
     }
 
     /**
-     * 좋아요 추가 이벤트 처리
-     * 3종 처리: Audit Log + Cache Evict + Metrics Update
+     * 이벤트 타입에 맞는 EventHandler 찾기
+     *
+     * @param eventType 이벤트 타입 (예: "LikeAddedEvent")
+     * @return 처리 가능한 Handler, 없으면 null
      */
-    private void handleLikeAddedEvent(String message, String productId) {
-        try {
-            // JSON을 LikeAddedEvent 객체로 변환 (가정)
-            // 실제로는 LikeAddedEvent 클래스를 import 해야 함
-            Object likeAddedEvent = eventDeserializer.deserialize(message, Object.class);
-
-            Long productIdLong = Long.parseLong(productId);
-
-            // 1. 감사 로그 저장
-            eventLogService.saveEventLog(likeAddedEvent, "LikeAddedEvent", productId, "PRODUCT");
-
-            // 2. 상품 관련 캐시 무효화
-            cacheEvictService.evictProductCache(productIdLong);
-            cacheEvictService.evictTopLikedProductsCache(); // 랭킹 캐시도 무효화
-
-            // 3. 좋아요 수 증가 (집계)
-            metricsService.increaseLikeCount(productIdLong);
-
-            log.info("좋아요 추가 이벤트 처리 완료 - productId: {}", productId);
-
-        } catch (Exception e) {
-            log.error("좋아요 추가 이벤트 처리 실패 - productId: {}, error: {}", productId, e.getMessage(), e);
-            throw e;
-        }
-    }
-
-    /**
-     * 좋아요 제거 이벤트 처리
-     * 3종 처리: Audit Log + Cache Evict + Metrics Update
-     */
-    private void handleLikeRemovedEvent(String message, String productId) {
-        try {
-            // JSON을 LikeRemovedEvent 객체로 변환 (가정)
-            Object likeRemovedEvent = eventDeserializer.deserialize(message, Object.class);
-
-            Long productIdLong = Long.parseLong(productId);
-
-            // 1. 감사 로그 저장
-            eventLogService.saveEventLog(likeRemovedEvent, "LikeRemovedEvent", productId, "PRODUCT");
-
-            // 2. 상품 관련 캐시 무효화
-            cacheEvictService.evictProductCache(productIdLong);
-            cacheEvictService.evictTopLikedProductsCache(); // 랭킹 캐시도 무효화
-
-            // 3. 좋아요 수 감소 (집계)
-            metricsService.decreaseLikeCount(productIdLong);
-
-            log.info("좋아요 제거 이벤트 처리 완료 - productId: {}", productId);
-
-        } catch (Exception e) {
-            log.error("좋아요 제거 이벤트 처리 실패 - productId: {}, error: {}", productId, e.getMessage(), e);
-            throw e;
-        }
+    private EventHandler findEventHandler(String eventType) {
+        return eventHandlers.stream()
+                .filter(handler -> handler.canHandle(eventType))
+                .findFirst()
+                .orElse(null);
     }
 
 }

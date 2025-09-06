@@ -1,5 +1,6 @@
 package com.loopers.collector.common;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,28 +42,65 @@ public class EventDeserializer {
 
     /**
      * 이벤트 타입 감지
-     * JSON에서 이벤트 클래스명을 추출하여 타입 결정
+     * 1. JSON의 eventType 필드에서 직접 읽기
+     * 2. JSON에서 이벤트 클래스명을 추출하여 타입 결정
      *
      * @param json JSON 문자열
-     * @return 이벤트 타입명 (예: "LikeAddedEvent")
+     * @return 이벤트 타입명 (예: "LikeAddedEvent", "StockDecreasedEvent")
      */
     public String detectEventType(String json) {
         try {
-            // 간단한 패턴 매칭으로 이벤트 타입 감지
+
+            // 1. JSON의 eventType 필드에서 직접 읽기
+            JsonNode rootNode = objectMapper.readTree(json);
+            JsonNode eventTypeNode = rootNode.get("eventType");
+
+            if (eventTypeNode != null && !eventTypeNode.isNull()) {
+                String eventType = eventTypeNode.asText();
+                log.debug("이벤트 타입 감지 성공 (eventType 필드) - type: {}", eventType);
+                return eventType;
+            }
+
+            // 2. JSON에서 이벤트 클래스명을 추출하여 타입 결정
+            log.debug("eventType 필드 없음, 패턴 매칭으로 감지 시도");
+            return detectEventTypeByPattern(json);
+
+        } catch (Exception e) {
+            log.error("이벤트 타입 감지 실패 - json: {}, error: {}", json, e.getMessage());
+            return "UnknownEvent";
+        }
+    }
+
+    /**
+     * JSON에서 이벤트 클래스명을 추출하여 타입 결정
+     */
+    private String detectEventTypeByPattern(String json) {
+        try {
+            // Like 이벤트 감지
             if (json.contains("\"userId\"") && json.contains("\"targetId\"") && json.contains("\"likeType\"")) {
-                if (json.contains("LikeAddedEvent") || (!json.contains("LikeRemovedEvent") && json.contains("LIKE"))) {
+                if (json.contains("LikeAddedEvent") || (!json.contains("LikeRemovedEvent") && json.contains("LIKE")))
+                {
                     return "LikeAddedEvent";
                 } else {
                     return "LikeRemovedEvent";
                 }
             }
 
-            // 다른 이벤트 타입들 추가 가능
-            log.warn("알 수 없는 이벤트 타입 - json: {}", json);
+            // Stock 이벤트 감지
+            if (json.contains("\"productId\"") && json.contains("\"previousStock\"") &&
+                    json.contains("\"currentStock\"")) {
+                if (json.contains("\"decreasedQuantity\"") || json.contains("StockDecreasedEvent")) {
+                    return "StockDecreasedEvent";
+                } else if (json.contains("\"increasedQuantity\"") || json.contains("StockIncreasedEvent")) {
+                    return "StockIncreasedEvent";
+                }
+            }
+
+            log.warn("패턴 매칭으로도 이벤트 타입 감지 실패 - json: {}", json);
             return "UnknownEvent";
 
         } catch (Exception e) {
-            log.error("이벤트 타입 감지 실패 - json: {}, error: {}", json, e.getMessage());
+            log.error("패턴 매칭 감지 실패 - json: {}, error: {}", json, e.getMessage());
             return "UnknownEvent";
         }
     }
