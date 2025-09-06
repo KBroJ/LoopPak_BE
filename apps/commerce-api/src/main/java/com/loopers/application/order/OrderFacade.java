@@ -16,6 +16,8 @@ import com.loopers.domain.points.Point;
 import com.loopers.domain.points.PointRepository;
 import com.loopers.domain.product.Product;
 import com.loopers.domain.product.ProductRepository;
+import com.loopers.domain.users.User;
+import com.loopers.domain.users.UserRepository;
 import com.loopers.domain.product.StockChangeResult;
 import com.loopers.infrastructure.event.KafkaEventPublisher;
 import com.loopers.support.error.CoreException;
@@ -42,21 +44,27 @@ public class OrderFacade {
     private final PointRepository pointRepository;
     private final UserCouponRepository userCouponRepository;
     private final CouponRepository couponRepository;
+    private final UserRepository userRepository;
 
     private final ApplicationEventPublisher eventPublisher;
     private final KafkaEventPublisher kafkaEventPublisher;
 
     @Transactional
-    public Order placeOrder(Long userId, OrderInfo orderInfo) {
+    public Order placeOrder(String userId, OrderInfo orderInfo) {
 
         // 1. 데이터 조회
+        // User 조회 (String userId -> Long ID 변환)
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "사용자 정보를 찾을 수 없습니다."));
+        Long userInternalId = user.getId();
+
         List<Long> productIds = orderInfo.items().stream().map(OrderItemInfo::productId).toList();
         List<Product> products =
 //                productRepository.findAllById(productIds);
                 productRepository.findAllByIdWithLock(productIds);
 
 //        Point userPoint = pointRepository.findByUserId(userId)
-        Point userPoint = pointRepository.findByUserIdWithLock(userId)
+        Point userPoint = pointRepository.findByUserIdWithLock(userInternalId)
                 .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "사용자 포인트 정보를 찾을 수 없습니다."));
 
         // 2. 비즈니스 규칙 검증
@@ -104,7 +112,7 @@ public class OrderFacade {
 
             // 3-1. 사용자가 보유한 유효한 쿠폰인지 확인
 //            UserCoupon userCoupon = userCouponRepository.findByIdAndUserId(orderRequest.couponId(), userId)
-            UserCoupon userCoupon = userCouponRepository.findByIdAndUserIdWithLock(orderInfo.couponId(), userId)
+            UserCoupon userCoupon = userCouponRepository.findByIdAndUserIdWithLock(orderInfo.couponId(), userInternalId)
                     .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "사용할 수 없는 쿠폰입니다."));
 
             // 3-2. 쿠폰 정책(템플릿) 정보 조회
@@ -127,7 +135,7 @@ public class OrderFacade {
         long finalPrice = originalTotalPrice - discountAmount;
 
         // 5. 주문 먼저 생성 (PENDING 상태)
-        Order newOrder = Order.of(userId, orderItems, discountAmount, orderInfo.couponId(), OrderStatus.PENDING);
+        Order newOrder = Order.of(userInternalId, orderItems, discountAmount, orderInfo.couponId(), OrderStatus.PENDING);
         Order savedOrder = orderRepository.save(newOrder);  // PK 생성됨
 
         // 6. 결제 처리 (orderId와 함께)
@@ -138,22 +146,30 @@ public class OrderFacade {
 
 
         // 7. 이벤트 발행 (쿠폰 사용 처리)
-        eventPublisher.publishEvent(
-            OrderCreatedEvent.of(
+        OrderCreatedEvent orderCreatedEvent = OrderCreatedEvent.of(
                 savedOrder.getId(),     // orderId
                 userId,                 // userId
                 orderInfo.couponId(),   // couponId
                 finalPrice,             // finalPrice
                 paymentType,            // paymentType
                 paymentMethod           // paymentMethod
-            )
         );
 
-        log.info("주문 생성 완료 및 쿠폰 사용 이벤트 발행 - orderId: {}", savedOrder.getId());
+        // 동기 처리: ApplicationEvent
+        eventPublisher.publishEvent(orderCreatedEvent);
+
+        // 비동기 처리: Kafka 이벤트 발행 추가
+        kafkaEventPublisher.publish(
+                "order-events",                    // 토픽명
+                savedOrder.getId().toString(),          // PartitionKey = orderId (주문 순서 보장)
+                orderCreatedEvent                       // 이벤트 객체
+        );
+
+        log.info("주문 생성 완료 및 이벤트 발행 - orderId: {} (ApplicationEvent + Kafka)", savedOrder.getId());
 
         // 8. 결제 처리
         PaymentResult paymentResult = paymentFacade.processPayment(
-                userId,
+                userInternalId,
                 savedOrder.getId(),
                 finalPrice,
                 paymentType,

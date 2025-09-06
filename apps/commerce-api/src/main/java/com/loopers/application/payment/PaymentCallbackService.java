@@ -8,6 +8,7 @@ import com.loopers.domain.order.OrderRepository;
 import com.loopers.domain.payment.Payment;
 import com.loopers.domain.payment.PaymentRepository;
 import com.loopers.domain.payment.PaymentStatus;
+import com.loopers.infrastructure.event.KafkaEventPublisher;
 import com.loopers.interfaces.api.payment.PgCallbackRequest;
 import com.loopers.support.error.CoreException;
 import com.loopers.support.error.ErrorType;
@@ -29,6 +30,7 @@ public class PaymentCallbackService {
     private final OrderRepository orderRepository;
     private final PaymentRecoveryService paymentRecoveryService;
     private final ApplicationEventPublisher eventPublisher;
+    private final KafkaEventPublisher kafkaEventPublisher;
 
     @Transactional
     public void handlePaymentCallback(PgCallbackRequest callbackRequest) {

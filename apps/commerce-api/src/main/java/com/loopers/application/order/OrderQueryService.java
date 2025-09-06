@@ -5,6 +5,8 @@ import com.loopers.domain.order.OrderItem;
 import com.loopers.domain.order.OrderRepository;
 import com.loopers.domain.product.Product;
 import com.loopers.domain.product.ProductRepository;
+import com.loopers.domain.users.User;
+import com.loopers.domain.users.UserRepository;
 import com.loopers.support.error.CoreException;
 import com.loopers.support.error.ErrorType;
 import lombok.RequiredArgsConstructor;
@@ -25,11 +27,17 @@ public class OrderQueryService {
 
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
+    private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
-    public Page<OrderSummaryResponse> getMyOrders(Long userId, int page, int size) {
+    public Page<OrderSummaryResponse> getMyOrders(String userId, int page, int size) {
+        // User 조회 (String userId -> Long ID 변환)
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "사용자 정보를 찾을 수 없습니다."));
+        Long userInternalId = user.getId();
+        
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<Order> orderPage = orderRepository.findByUserId(userId, pageable);
+        Page<Order> orderPage = orderRepository.findByUserId(userInternalId, pageable);
         // DTO 변환 로직은 여기에 직접 두거나, 별도 Mapper 클래스로 분리할 수 있습니다.
         return orderPage.map(OrderSummaryResponse::from);
     }
