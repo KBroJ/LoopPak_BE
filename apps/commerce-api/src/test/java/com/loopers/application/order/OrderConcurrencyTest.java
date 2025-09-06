@@ -89,7 +89,7 @@ class OrderConcurrencyTest {
         for (int i = 0; i < threadCount; i++) {
             executorService.submit(() -> {
                 try {
-                    orderFacade.placeOrder(user.id(), orderInfo);
+                    orderFacade.placeOrder(user.userId(), orderInfo);
                     successCount.incrementAndGet(); // 성공 시 카운트 증가
                 } catch (Exception e) {
                     // 비관적 락 충돌 시 LockAcquisitionException,
@@ -137,7 +137,7 @@ class OrderConcurrencyTest {
         for (int i = 0; i < threadCount; i++) {
             executorService.submit(() -> {
                 try {
-                    orderFacade.placeOrder(user.id(), orderInfo);
+                    orderFacade.placeOrder(user.userId(), orderInfo);
                 } catch (Exception e) {
                     System.out.println("주문 실패 (포인트 부족 등): " + e.getMessage());
                 } finally {
@@ -186,7 +186,7 @@ class OrderConcurrencyTest {
             final UserInfo user = users.get(i);
             executorService.submit(() -> {
                 try {
-                    orderFacade.placeOrder(user.id(), orderInfo);
+                    orderFacade.placeOrder(user.userId(), orderInfo);
                 } finally {
                     latch.countDown();
                 }

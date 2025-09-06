@@ -69,7 +69,7 @@ class OrderUsecaseIntegrationTest {
             "POINT", // 기본 결제 방식은 포인트
             null                // 포인트 결제시 PaymentMethod는 null
         );
-        savedOrder = orderFacade.placeOrder(testUser.id(), orderInfo);
+        savedOrder = orderFacade.placeOrder(testUser.userId(), orderInfo);
     }
 
     @AfterEach
@@ -96,7 +96,7 @@ class OrderUsecaseIntegrationTest {
             );
 
             // act
-            Order newOrder = orderFacade.placeOrder(testUser.id(), orderInfo);
+            Order newOrder = orderFacade.placeOrder(testUser.userId(), orderInfo);
 
             // assert
             Product updatedProduct = productService.productInfo(product1.getId()).get();
@@ -122,7 +122,7 @@ class OrderUsecaseIntegrationTest {
             );
 
             // act & assert
-            assertThatThrownBy(() -> orderFacade.placeOrder(testUser.id(), orderInfo))
+            assertThatThrownBy(() -> orderFacade.placeOrder(testUser.userId(), orderInfo))
                     .isInstanceOf(CoreException.class)
                     .hasMessageContaining("재고가 부족합니다");
 
@@ -146,7 +146,7 @@ class OrderUsecaseIntegrationTest {
             );
 
             // act & assert
-            assertThatThrownBy(() -> orderFacade.placeOrder(poorUser.id(), orderRequest))
+            assertThatThrownBy(() -> orderFacade.placeOrder(poorUser.userId(), orderRequest))
                     .isInstanceOf(CoreException.class)
                     .hasMessageContaining("포인트가 부족합니다");
 
@@ -159,7 +159,7 @@ class OrderUsecaseIntegrationTest {
     @Test
     void getMyOrders_returnsCorrectOrderSummary() {
         // act
-        Page<OrderSummaryResponse> resultPage = orderQueryService.getMyOrders(testUser.id(), 0, 10);
+        Page<OrderSummaryResponse> resultPage = orderQueryService.getMyOrders(testUser.userId(), 0, 10);
 
         // assert
         assertThat(resultPage.getTotalElements()).isEqualTo(1);

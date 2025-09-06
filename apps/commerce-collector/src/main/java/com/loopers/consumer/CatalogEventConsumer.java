@@ -5,11 +5,9 @@ import com.loopers.collector.application.eventhandled.EventHandledService;
 import com.loopers.consumer.handler.EventHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
-import org.springframework.kafka.support.KafkaHeaders;
-import org.springframework.messaging.handler.annotation.Header;
-import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -50,21 +48,23 @@ public class CatalogEventConsumer {
      */
     @KafkaListener(
             topics = "catalog-events",
-            groupId = "commerce-collector",
-            containerFactory = "kafkaListenerContainerFactory"
+            groupId = "commerce-collector"
     )
     public void handleCatalogEvent(
-            @Payload String message,                                // 메시지 내용(@Payload : 실제 메시지 내용, EventEnvelope JSON 문자열)
-            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,      // 토픽명
-            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition, // 파티션 번호
-            @Header(KafkaHeaders.OFFSET) long offset,               // 오프셋(메시지 순번)
-            @Header(KafkaHeaders.RECEIVED_KEY) String messageKey,   // 파티션 키(productId)
+            ConsumerRecord<String, String> record,                 // ConsumerRecord로 직접 받아서 메타데이터와 메시지 모두 접근
             Acknowledgment ack                                      // 수동 ACK : 메시지 처리 완료 확인용
     ) {
 
+        // ConsumerRecord에서 메타데이터와 메시지 추출
+        String message = record.value();           // 실제 메시지 내용 (EventEnvelope JSON 문자열)
+        String topic = record.topic();             // 토픽명
+        int partition = record.partition();        // 파티션 번호  
+        long offset = record.offset();             // 오프셋(메시지 순번)
+        String messageKey = record.key();          // 파티션 키(productId)
+        
         try {
 
-            // EventEnvelope 파싱(Producer에서 감싼 구조 해제)
+            // 1. EventEnvelope 파싱(Producer에서 감싼 구조 해제)
             EventEnvelope envelope;
             try {
                 envelope = objectMapper.readValue(message, EventEnvelope.class);
@@ -78,9 +78,10 @@ public class CatalogEventConsumer {
             String eventId = envelope.eventId();    // Producer에서 생성한 고유 ID 사용(멱등성 처리용 고유 키)
             Object payload = envelope.payload();    // 실제 이벤트 데이터
 
-            log.info("Catalog 이벤트 수신 - eventType: {}, eventId: {}, key: {}", eventType, eventId, messageKey);
+            log.info("Catalog 이벤트 수신 - eventType: {}, eventId: {}, key: {}, topic: {}, partition: {}, offset: {}", 
+                    eventType, eventId, messageKey, topic, partition, offset);
 
-            // 중복 처리 확인 (멱등성 체크)
+            // 2. 중복 처리 확인 (멱등성 체크)
             if (eventHandledService.isAlreadyHandled(eventId)) {
                 log.info("이미 처리된 이벤트 - eventId: {}", eventId);
                 ack.acknowledge(); // 중복이면 바로 ACK하고 종료
