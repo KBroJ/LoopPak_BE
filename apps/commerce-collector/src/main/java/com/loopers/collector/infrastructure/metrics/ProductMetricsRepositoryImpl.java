@@ -31,21 +31,18 @@ public class ProductMetricsRepositoryImpl implements ProductMetricsRepository {
     }
 
     @Override
-    @Transactional
     public void updateLikeCount(Long productId, int delta) {
         productMetricsJpaRepository.upsertLikeCount(productId, delta);
     }
 
     @Override
-    @Transactional
     public void updateViewCount(Long productId) {
         productMetricsJpaRepository.upsertViewCount(productId);
     }
 
     @Override
-    @Transactional
-    public void updateOrderCount(Long productId) {
-        productMetricsJpaRepository.upsertOrderCount(productId);
+    public void updateSalesCount(Long productId, int quantity) {
+        productMetricsJpaRepository.upsertSalesCount(productId, quantity);
     }
 
     @Override

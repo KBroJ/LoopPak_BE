@@ -27,12 +27,12 @@ public interface ProductMetricsJpaRepository extends JpaRepository<ProductMetric
      */
     @Modifying
     @Query(value = """
-          INSERT INTO product_metrics (product_id, like_count, view_count, order_count, created_at, updated_at)
-          VALUES (:productId, :delta, 0, 0, NOW(), NOW())
-          ON DUPLICATE KEY UPDATE
-              like_count = GREATEST(0, like_count + :delta),
-              updated_at = NOW()
-          """, nativeQuery = true)
+        INSERT INTO product_metrics (product_id, like_count, view_count, sales_count, created_at, updated_at)
+        VALUES (:productId, :delta, 0, 0, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE
+            like_count = GREATEST(0, like_count + :delta),
+            updated_at = NOW()
+        """, nativeQuery = true)
     void upsertLikeCount(@Param("productId") Long productId, @Param("delta") int delta);
 
     /**
@@ -40,7 +40,7 @@ public interface ProductMetricsJpaRepository extends JpaRepository<ProductMetric
      */
     @Modifying
     @Query(value = """
-          INSERT INTO product_metrics (product_id, like_count, view_count, order_count, created_at, updated_at)
+          INSERT INTO product_metrics (product_id, like_count, view_count, sales_count, created_at, updated_at)
           VALUES (:productId, 0, 1, 0, NOW(), NOW())
           ON DUPLICATE KEY UPDATE
               view_count = view_count + 1,
@@ -49,17 +49,18 @@ public interface ProductMetricsJpaRepository extends JpaRepository<ProductMetric
     void upsertViewCount(@Param("productId") Long productId);
 
     /**
-     * 주문수 증가 (UPSERT)
+     * 판매량 증가 (UPSERT)
+     * 실제 판매된 수량을 정확히 반영
      */
     @Modifying
     @Query(value = """
-          INSERT INTO product_metrics (product_id, like_count, view_count, order_count, created_at, updated_at)
-          VALUES (:productId, 0, 0, 1, NOW(), NOW())
-          ON DUPLICATE KEY UPDATE
-              order_count = order_count + 1,
-              updated_at = NOW()
-          """, nativeQuery = true)
-    void upsertOrderCount(@Param("productId") Long productId);
+        INSERT INTO product_metrics (product_id, like_count, view_count, sales_count, created_at, updated_at)
+        VALUES (:productId, 0, 0, :quantity, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE
+            sales_count = sales_count + :quantity,
+            updated_at = NOW()
+        """, nativeQuery = true)
+    void upsertSalesCount(@Param("productId") Long productId, @Param("quantity") int quantity);
 
     /**
      * 좋아요 수 기준 인기 상품 조회 (Pageable)

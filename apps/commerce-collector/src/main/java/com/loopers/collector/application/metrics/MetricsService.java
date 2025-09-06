@@ -58,7 +58,7 @@ public class MetricsService {
     }
 
     /**
-     * 상품 조회수 증가 (향후 확장용)
+     * 상품 조회수 증가
      * ProductViewedEvent 처리 시 호출
      *
      * @param productId 상품 ID
@@ -76,19 +76,32 @@ public class MetricsService {
     }
 
     /**
-     * 상품 주문수 증가 (향후 확장용)
-     * OrderCreatedEvent 처리 시 호출
-     *
-     * @param productId 상품 ID
+     * 상품 판매량 증가 (기본 1개)
+     * StockDecreasedEvent 처리 시 호출
      */
     @Transactional
-    public void increaseOrderCount(Long productId) {
+    public void increaseSalesCount(Long productId) {
+        increaseSalesCount(productId, 1);
+    }
+
+    /**
+     * 상품 판매량 증가 (수량 지정)
+     * StockDecreasedEvent에서 실제 판매 수량을 정확히 반영
+     */
+    @Transactional
+    public void increaseSalesCount(Long productId, int quantity) {
+        // 비즈니스 로직 검증 (Application Layer 책임)
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("판매량은 1 이상이어야 합니다: " + quantity);
+        }
+
         try {
-            productMetricsRepository.updateOrderCount(productId);
-            log.info("상품 주문수 증가 완료 - productId: {}", productId);
+            productMetricsRepository.updateSalesCount(productId, quantity);
+            log.info("상품 판매량 증가 완료 - productId: {}, quantity: {}", productId, quantity);
 
         } catch (Exception e) {
-            log.error("상품 주문수 증가 실패 - productId: {}, error: {}", productId, e.getMessage(), e);
+            log.error("상품 판매량 증가 실패 - productId: {}, quantity: {}, error: {}",
+                    productId, quantity, e.getMessage(), e);
             throw e;
         }
     }

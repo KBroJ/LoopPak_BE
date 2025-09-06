@@ -5,6 +5,7 @@ import com.loopers.application.dataplatform.event.PaymentDataPlatformEvent;
 import com.loopers.application.order.event.OrderCreatedEvent;
 import com.loopers.application.payment.PaymentFacade;
 import com.loopers.application.payment.PaymentResult;
+import com.loopers.application.product.event.StockDecreasedEvent;
 import com.loopers.domain.coupon.*;
 import com.loopers.domain.order.*;
 import com.loopers.domain.payment.CardType;
@@ -15,6 +16,8 @@ import com.loopers.domain.points.Point;
 import com.loopers.domain.points.PointRepository;
 import com.loopers.domain.product.Product;
 import com.loopers.domain.product.ProductRepository;
+import com.loopers.domain.product.StockChangeResult;
+import com.loopers.infrastructure.event.KafkaEventPublisher;
 import com.loopers.support.error.CoreException;
 import com.loopers.support.error.ErrorType;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +44,7 @@ public class OrderFacade {
     private final CouponRepository couponRepository;
 
     private final ApplicationEventPublisher eventPublisher;
+    private final KafkaEventPublisher kafkaEventPublisher;
 
     @Transactional
     public Order placeOrder(Long userId, OrderInfo orderInfo) {
@@ -68,7 +72,27 @@ public class OrderFacade {
         List<OrderItem> orderItems = products.stream()
                 .map(product -> {
                     int quantity = quantityMap.get(product.getId());
-                    product.decreaseStock(quantity);    // Product Entity가 스스로 재고를 차감하고, 불가능하면 예외를 던짐
+
+                    StockChangeResult stockResult = product.decreaseStock(quantity);  // 재고 차감 및 결과 반환
+
+                    // 재고 감소 이벤트 생성
+                    StockDecreasedEvent stockEvent = StockDecreasedEvent.forOrder(
+                            stockResult.productId(),
+                            stockResult.previousStock(),
+                            stockResult.currentStock(),
+                            stockResult.changedQuantity()
+                    );
+
+                    // 동기 집계 처리 (ApplicationEvent)
+                    eventPublisher.publishEvent(stockEvent);
+
+                    // 비동기 외부 시스템 연동 (Kafka)
+                    kafkaEventPublisher.publish("catalog-events", stockResult.productId().toString(), stockEvent);
+
+                    log.info("재고 감소 이벤트 발행 - productId: {}, 이전재고: {}, 현재재고: {}",
+                            stockResult.productId(), stockResult.previousStock(), stockResult.currentStock());
+
+
                     return OrderItem.of(product.getId(), quantity, product.getPrice());
                 })
                 .toList();

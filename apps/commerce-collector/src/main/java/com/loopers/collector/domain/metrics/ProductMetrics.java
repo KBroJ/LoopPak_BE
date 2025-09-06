@@ -45,9 +45,9 @@ public class ProductMetrics {
      * 누적 주문 수 (향후 확장용)
      * OrderCreatedEvent로 증가
      */
-    @Column(name = "order_count", nullable = false)
+    @Column(name = "sales_count", nullable = false)
     @Builder.Default
-    private Integer orderCount = 0;
+    private Integer salesCount = 0;
 
     /**
      * 마지막 업데이트 시간
@@ -92,17 +92,23 @@ public class ProductMetrics {
     }
 
     /**
-     * 조회수 증가 (향후 확장용)
+     * 조회수 증가
      */
     public void increaseViewCount() {
         this.viewCount++;
     }
 
     /**
-     * 주문수 증가 (향후 확장용)
+     * 주문수 증가
      */
-    public void increaseOrderCount() {
-        this.orderCount++;
+    public void increaseSalesCount() {
+        this.salesCount++;
+    }
+
+    public void increaseSalesCountBy(int quantity) {
+        if (quantity > 0) {
+            this.salesCount += quantity;
+        }
     }
 
     /**
@@ -119,13 +125,13 @@ public class ProductMetrics {
      */
     public static ProductMetrics createWith(
         Long productId, Integer likeCount,
-        Integer viewCount, Integer orderCount
+        Integer viewCount, Integer salesCount
     ) {
         return ProductMetrics.builder()
                 .productId(productId)
                 .likeCount(likeCount != null ? likeCount : 0)
                 .viewCount(viewCount != null ? viewCount : 0)
-                .orderCount(orderCount != null ? orderCount : 0)
+                .salesCount(salesCount != null ? salesCount : 0)
                 .build();
     }
 

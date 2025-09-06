@@ -34,9 +34,11 @@ public interface ProductMetricsRepository {
     void updateViewCount(Long productId);
 
     /**
-     * 주문수 증가 (UPSERT, 향후 확장용)
+     * 판매량 증가 (UPSERT)
+     * @param productId 상품 ID
+     * @param quantity 증가할 판매량 (1개 이상)
      */
-    void updateOrderCount(Long productId);
+    void updateSalesCount(Long productId, int quantity);
 
     /**
      * 좋아요 수 기준 인기 상품 TOP N 조회
