@@ -131,6 +131,10 @@ public class PaymentCallbackService {
             );
             eventPublisher.publishEvent(successEvent);
             log.info("결제 성공 이벤트 발행 - orderId: {}, paymentType: {}", payment.getOrderId(), paymentType);
+
+            kafkaEventPublisher.publish("order-events", payment.getOrderId().toString(), successEvent);
+            log.info("결제 성공 Kafka 이벤트 발행 - orderId: {}, paymentType: {}", payment.getOrderId(), paymentType);
+
         } else {
             PaymentFailureEvent failureEvent = PaymentFailureEvent.of(
                     payment.getOrderId(),
@@ -143,6 +147,10 @@ public class PaymentCallbackService {
             );
             eventPublisher.publishEvent(failureEvent);
             log.info("결제 실패 이벤트 발행 - orderId: {}, paymentType: {}", payment.getOrderId(), paymentType);
+
+            kafkaEventPublisher.publish("order-events", payment.getOrderId().toString(), failureEvent);
+            log.info("결제 실패 Kafka 이벤트 발행 - orderId: {}, paymentType: {}", payment.getOrderId(), paymentType);
+
         }
     }
 
