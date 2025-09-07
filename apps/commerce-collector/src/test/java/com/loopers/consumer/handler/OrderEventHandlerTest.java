@@ -1,15 +1,15 @@
 package com.loopers.consumer.handler;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.loopers.collector.application.cache.CacheEvictService;
+import com.loopers.collector.application.eventhandled.EventHandledService;
 import com.loopers.collector.application.eventlog.EventLogService;
 import com.loopers.collector.common.EventDeserializer;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -27,18 +27,27 @@ class OrderEventHandlerTest {
 
     @Mock
     private EventLogService eventLogService;
-
     @Mock
     private CacheEvictService cacheEvictService;
-
     @Mock
     private EventDeserializer eventDeserializer;
-
     @Mock
-    private ObjectMapper objectMapper;
+    private EventHandledService eventHandledService;
 
-    @InjectMocks
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     private OrderEventHandler orderEventHandler;
+
+    @BeforeEach
+    void setUp() {
+        orderEventHandler = new OrderEventHandler(
+                eventLogService,
+                cacheEvictService,
+                eventDeserializer,
+                objectMapper,
+                eventHandledService
+        );
+    }
 
     @DisplayName("이벤트 타입 지원 여부 확인")
     @Nested
@@ -93,6 +102,7 @@ class OrderEventHandlerTest {
             String messageKey = "123";
             String payloadJson = """
                   {
+                      "eventId": "order-created-001",
                       "orderId": 123,
                       "userId": 456,
                       "finalPrice": 50000,
@@ -101,36 +111,27 @@ class OrderEventHandlerTest {
                   """;
 
             Object mockOrderEvent = new Object();
-            JsonNode mockJsonNode = mock(JsonNode.class);
-            JsonNode mockUserIdNode = mock(JsonNode.class);
-            JsonNode mockFinalPriceNode = mock(JsonNode.class);
-            JsonNode mockPaymentTypeNode = mock(JsonNode.class);
 
             when(eventDeserializer.deserialize(payloadJson, Object.class))
                     .thenReturn(mockOrderEvent);
-            when(objectMapper.readTree(payloadJson))
-                    .thenReturn(mockJsonNode);
-            when(mockJsonNode.get("userId")).thenReturn(mockUserIdNode);
-            when(mockUserIdNode.asLong()).thenReturn(456L);
-            when(mockJsonNode.get("finalPrice")).thenReturn(mockFinalPriceNode);
-            when(mockFinalPriceNode.asLong()).thenReturn(50000L);
-            when(mockJsonNode.get("paymentType")).thenReturn(mockPaymentTypeNode);
-            when(mockPaymentTypeNode.asText()).thenReturn("POINT");
+            when(eventHandledService.isAlreadyHandled("order-created-001"))
+                    .thenReturn(false);
 
             // act
             orderEventHandler.handle(eventType, payloadJson, messageKey);
 
-            // assert
-            assertAll(
-                    () -> verify(eventDeserializer).deserialize(payloadJson, Object.class),
-                    () -> verify(eventLogService).saveEventLog(
-                            eq(mockOrderEvent),
-                            eq("OrderCreatedEvent"),
-                            eq("123"),
-                            eq("ORDER")
-                    ),
-                    () -> verify(objectMapper).readTree(payloadJson)
+            // assert - 핵심 비즈니스 로직 검증
+            verify(eventDeserializer).deserialize(payloadJson, Object.class);
+            verify(eventLogService).saveEventLog(
+                    eq(mockOrderEvent),
+                    eq("OrderCreatedEvent"),
+                    eq("123"),
+                    eq("ORDER")
             );
+
+            // 멱등성 관련 검증
+            verify(eventHandledService).isAlreadyHandled("order-created-001");
+            verify(eventHandledService).markAsHandled("order-created-001", "OrderCreatedEvent", "123");
         }
 
         @DisplayName("잘못된 messageKey로 호출 시 NumberFormatException이 발생한다")
@@ -139,7 +140,14 @@ class OrderEventHandlerTest {
             // arrange
             String eventType = "OrderCreatedEvent";
             String invalidMessageKey = "invalid-number";
-            String payloadJson = "{}";
+            String payloadJson = """
+                  {
+                      "eventId": "order-invalid-001"
+                  }
+                  """;
+
+            when(eventHandledService.isAlreadyHandled("order-invalid-001"))
+                    .thenReturn(false);
 
             // act & assert
             assertThatThrownBy(() ->
@@ -153,8 +161,14 @@ class OrderEventHandlerTest {
             // arrange
             String eventType = "OrderCreatedEvent";
             String messageKey = "123";
-            String payloadJson = "{}";
+            String payloadJson = """
+                  {
+                      "eventId": "order-deserialize-fail-001"
+                  }
+                  """;
 
+            when(eventHandledService.isAlreadyHandled("order-deserialize-fail-001"))
+                    .thenReturn(false);
             when(eventDeserializer.deserialize(payloadJson, Object.class))
                     .thenThrow(new RuntimeException("Deserialization failed"));
 
@@ -165,35 +179,32 @@ class OrderEventHandlerTest {
                     .hasMessageContaining("Deserialization failed");
 
             verify(eventLogService, never()).saveEventLog(any(), any(), any(), any());
+            verify(eventHandledService, never()).markAsHandled(any(), any(), any());
         }
 
-        @DisplayName("JSON 파싱 실패해도 감사 로그는 저장되고 예외는 삼킨다")
+        @DisplayName("중복 주문 생성 이벤트는 처리하지 않는다")
         @Test
-        void handle_JsonParsingFailure_ContinuesProcessing() throws Exception {
+        void handle_DuplicateOrderCreatedEvent_SkipsProcessing() {
             // arrange
             String eventType = "OrderCreatedEvent";
             String messageKey = "123";
-            String payloadJson = "{}";
+            String payloadJson = """
+                  {
+                      "eventId": "order-duplicate-001",
+                      "orderId": 123
+                  }
+                  """;
 
-            Object mockOrderEvent = new Object();
-            when(eventDeserializer.deserialize(payloadJson, Object.class))
-                    .thenReturn(mockOrderEvent);
-            when(objectMapper.readTree(payloadJson))
-                    .thenThrow(new RuntimeException("JSON parsing failed"));
+            when(eventHandledService.isAlreadyHandled("order-duplicate-001"))
+                    .thenReturn(true); // 이미 처리됨
 
             // act
             orderEventHandler.handle(eventType, payloadJson, messageKey);
 
-            // assert
-            assertAll(
-                    () -> verify(eventLogService).saveEventLog(
-                            eq(mockOrderEvent),
-                            eq("OrderCreatedEvent"),
-                            eq("123"),
-                            eq("ORDER")
-                    ),
-                    () -> verify(objectMapper).readTree(payloadJson)
-            );
+            // assert - 비즈니스 로직 호출 안됨
+            verify(eventLogService, never()).saveEventLog(any(), any(), any(), any());
+            verify(eventDeserializer, never()).deserialize(any(), any());
+            verify(eventHandledService, never()).markAsHandled(any(), any(), any());
         }
     }
 
@@ -207,13 +218,35 @@ class OrderEventHandlerTest {
             // arrange
             String invalidEventType = "UnsupportedEvent";
             String messageKey = "123";
-            String payloadJson = "{}";
+            String payloadJson = """
+                  {
+                      "eventId": "unsupported-001"
+                  }
+                  """;
+
+            when(eventHandledService.isAlreadyHandled("unsupported-001"))
+                    .thenReturn(false);
 
             // act & assert
             assertThatThrownBy(() ->
                     orderEventHandler.handle(invalidEventType, payloadJson, messageKey)
             ).isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("지원하지 않는 이벤트 타입");
+        }
+
+        @DisplayName("eventId가 없으면 예외가 발생한다")
+        @Test
+        void handle_MissingEventId_ThrowsException() {
+            // arrange
+            String eventType = "OrderCreatedEvent";
+            String messageKey = "123";
+            String payloadJson = "{}"; // eventId 없음
+
+            // act & assert
+            assertThatThrownBy(() ->
+                    orderEventHandler.handle(eventType, payloadJson, messageKey)
+            ).isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("eventId 추출 실패");
         }
     }
 }

@@ -18,7 +18,6 @@ import java.util.List;
  * 역할:
  * - Kafka 메시지 수신 및 EventEnvelope 파싱
  * - 적절한 EventHandler로 라우팅
- * - 멱등성 처리 및 Manual ACK
  * - 단일 책임 원칙 적용 (라우팅만 담당)
  * - EventHandler 패턴으로 도메인별 처리 분리
  *
@@ -42,17 +41,16 @@ public class CatalogEventConsumer {
      *
      * 처리 흐름:
      * 1. EventEnvelope 파싱
-     * 2. 멱등성 체크 (중복 처리 방지)
-     * 3. 적절한 EventHandler 찾아서 위임
-     * 4. 처리 완료 기록 및 ACK
+     * 2. 적절한 EventHandler 찾아서 위임
+     * 3. Manual ACK (Handler에서 멱등성 처리)
      */
     @KafkaListener(
             topics = "catalog-events",
             groupId = "commerce-collector"
     )
     public void handleCatalogEvent(
-            ConsumerRecord<String, String> record,                 // ConsumerRecord로 직접 받아서 메타데이터와 메시지 모두 접근
-            Acknowledgment ack                                      // 수동 ACK : 메시지 처리 완료 확인용
+        ConsumerRecord<String, String> record,                 // ConsumerRecord로 직접 받아서 메타데이터와 메시지 모두 접근
+        Acknowledgment ack                                      // 수동 ACK : 메시지 처리 완료 확인용
     ) {
 
         // ConsumerRecord에서 메타데이터와 메시지 추출
@@ -75,30 +73,20 @@ public class CatalogEventConsumer {
             }
 
             String eventType = envelope.eventType();
-            String eventId = envelope.eventId();    // Producer에서 생성한 고유 ID 사용(멱등성 처리용 고유 키)
             Object payload = envelope.payload();    // 실제 이벤트 데이터
+            log.info("Catalog 이벤트 수신 - eventType: {}, key: {}, topic: {}, partition: {}, offset: {}",
+                    eventType, messageKey, topic, partition, offset);
 
-            log.info("Catalog 이벤트 수신 - eventType: {}, eventId: {}, key: {}, topic: {}, partition: {}, offset: {}", 
-                    eventType, eventId, messageKey, topic, partition, offset);
-
-            // 2. 중복 처리 확인 (멱등성 체크)
-            if (eventHandledService.isAlreadyHandled(eventId)) {
-                log.info("이미 처리된 이벤트 - eventId: {}", eventId);
-                ack.acknowledge(); // 중복이면 바로 ACK하고 종료
-                return;
-            }
-
-            // 3. payload를 JSON으로 변환 (EventHandler들이 JSON 문자열을 받도록 설계)
+            // 2. payload를 JSON으로 변환 (EventHandler들이 JSON 문자열을 받도록 설계)
             String payloadJson;
             try {
                 payloadJson = objectMapper.writeValueAsString(payload);
             } catch (Exception jsonException) {
-                log.error("payload JSON 변환 실패 - eventType: {}, eventId: {}, error: {}",
-                        eventType, eventId, jsonException.getMessage());
+                log.error("payload JSON 변환 실패 - eventType: {}, error: {}", eventType, jsonException.getMessage());
                 throw new RuntimeException("payload JSON 변환 실패", jsonException);
             }
 
-            // 4. 적절한 EventHandler 찾아서 위임
+            // 3. 적절한 EventHandler 찾아서 위임
             EventHandler handler = findEventHandler(eventType);
             if (handler != null) {
                 handler.handle(eventType, payloadJson, messageKey);
@@ -109,10 +97,7 @@ public class CatalogEventConsumer {
                 log.warn("처리할 수 있는 Handler가 없음 - eventType: {}", eventType);
             }
 
-            // 5. 처리 완료 기록 (멱등성 보장)
-            eventHandledService.markAsHandled(eventId, eventType, messageKey);
-
-            // 6. 메시지 처리 완료 확인 (Manual ACK)
+            // 4. 메시지 처리 완료 확인 (Manual ACK)
             ack.acknowledge();
             log.info("Catalog 이벤트 처리 완료 - eventType: {}, key: {}", eventType, messageKey);
 

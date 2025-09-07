@@ -3,6 +3,7 @@ package com.loopers.consumer.handler;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.loopers.collector.application.cache.CacheEvictService;
+import com.loopers.collector.application.eventhandled.EventHandledService;
 import com.loopers.collector.application.eventlog.EventLogService;
 import com.loopers.collector.common.EventDeserializer;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ public class OrderEventHandler implements EventHandler {
     // private final MetricsService metricsService; // 향후 주문 집계가 필요하면 추가
     private final EventDeserializer eventDeserializer;
     private final ObjectMapper objectMapper;
+    private final EventHandledService eventHandledService;
 
     /**
      * 처리 가능한 이벤트 타입들 반환
@@ -45,6 +47,14 @@ public class OrderEventHandler implements EventHandler {
     @Override
     public void handle(String eventType, String payloadJson, String messageKey) {
         try {
+
+            // JSON에서 eventId 추출하여 멱등성 체크
+            String eventId = extractEventId(payloadJson);
+            if (eventHandledService.isAlreadyHandled(eventId)) {
+                log.info("이미 처리된 주문 이벤트 - eventId: {}", eventId);
+                return; // 중복 이벤트면 바로 종료
+            }
+
             Long orderId = Long.parseLong(messageKey);
 
             switch (eventType) {
@@ -52,12 +62,36 @@ public class OrderEventHandler implements EventHandler {
                 default -> throw new IllegalArgumentException("지원하지 않는 이벤트 타입: " + eventType);
             }
 
+            // 처리 완료 기록 (멱등성 보장)
+            eventHandledService.markAsHandled(eventId, eventType, messageKey);
+
             log.info("주문 이벤트 처리 완료 - eventType: {}, orderId: {}", eventType, orderId);
 
         } catch (Exception e) {
             log.error("주문 이벤트 처리 실패 - eventType: {}, messageKey: {}, error: {}",
                     eventType, messageKey, e.getMessage(), e);
             throw e;
+        }
+    }
+
+    /**
+     * JSON payload에서 eventId 추출
+     * Consumer에서 전달받은 payload JSON에서 eventId를 찾아 반환
+     */
+    private String extractEventId(String payloadJson) {
+        try {
+            JsonNode payloadNode = objectMapper.readTree(payloadJson);
+            JsonNode eventIdNode = payloadNode.get("eventId");
+
+            if (eventIdNode == null || eventIdNode.isNull()) {
+                throw new IllegalArgumentException("payload에 eventId가 없습니다: " + payloadJson);
+            }
+
+            return eventIdNode.asText();
+
+        } catch (Exception e) {
+            log.error("eventId 추출 실패 - payloadJson: {}, error: {}", payloadJson, e.getMessage());
+            throw new RuntimeException("eventId 추출 실패", e);
         }
     }
 

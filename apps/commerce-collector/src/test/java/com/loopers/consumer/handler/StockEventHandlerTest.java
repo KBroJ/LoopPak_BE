@@ -1,16 +1,16 @@
 package com.loopers.consumer.handler;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.loopers.collector.application.cache.CacheEvictService;
+import com.loopers.collector.application.eventhandled.EventHandledService;
 import com.loopers.collector.application.eventlog.EventLogService;
 import com.loopers.collector.application.metrics.MetricsService;
 import com.loopers.collector.common.EventDeserializer;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -24,21 +24,30 @@ class StockEventHandlerTest {
 
     @Mock
     private EventLogService eventLogService;
-
     @Mock
     private CacheEvictService cacheEvictService;
-
     @Mock
     private MetricsService metricsService;
-
     @Mock
     private EventDeserializer eventDeserializer;
-
     @Mock
-    private ObjectMapper objectMapper;  // 추가된 Mock
+    private EventHandledService eventHandledService;
 
-    @InjectMocks
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     private StockEventHandler stockEventHandler;
+
+    @BeforeEach
+    void setUp() {
+        stockEventHandler = new StockEventHandler(
+                eventLogService,
+                cacheEvictService,
+                metricsService,
+                eventDeserializer,
+                objectMapper,
+                eventHandledService
+        );
+    }
 
     @DisplayName("지원 이벤트 타입")
     @Nested
@@ -64,28 +73,33 @@ class StockEventHandlerTest {
         void handle_ValidStockDecreasedEvent_ProcessesSuccessfully() throws Exception {
             // arrange
             String eventType = "StockDecreasedEvent";
-            String payloadJson = "{\"productId\":456,\"currentStock\":5,\"previousStock\":10}";
+            String payloadJson = """
+                  {
+                    "eventId": "stock-decreased-001",
+                    "productId": 456,
+                    "currentStock": 5,
+                    "previousStock": 10
+                  }
+                  """;
             String messageKey = "456";
             Object mockStockEvent = new Object();
 
-            JsonNode mockJsonNode = mock(JsonNode.class);
-            JsonNode mockCurrentStockNode = mock(JsonNode.class);
-
             when(eventDeserializer.deserialize(payloadJson, Object.class))
                     .thenReturn(mockStockEvent);
-            when(objectMapper.readTree(payloadJson))
-                    .thenReturn(mockJsonNode);
-            when(mockJsonNode.get("currentStock")).thenReturn(mockCurrentStockNode);
-            when(mockCurrentStockNode.asInt()).thenReturn(5);
+            when(eventHandledService.isAlreadyHandled("stock-decreased-001"))
+                    .thenReturn(false);
 
             // act
             stockEventHandler.handle(eventType, payloadJson, messageKey);
 
-            // assert
+            // assert - 핵심 비즈니스 로직 검증
             verify(eventLogService).saveEventLog(mockStockEvent, "StockDecreasedEvent", "456", "PRODUCT");
             verify(cacheEvictService).evictProductCache(456L);
             verify(metricsService).increaseSalesCount(456L);
-            verify(objectMapper).readTree(payloadJson);
+
+            // 멱등성 관련 검증
+            verify(eventHandledService).isAlreadyHandled("stock-decreased-001");
+            verify(eventHandledService).markAsHandled("stock-decreased-001", "StockDecreasedEvent", "456");
         }
 
         @Test
@@ -93,19 +107,21 @@ class StockEventHandlerTest {
         void handle_StockDecreasedToZero_EvictsProductListCache() throws Exception {
             // arrange
             String eventType = "StockDecreasedEvent";
-            String payloadJson = "{\"productId\":456,\"currentStock\":0,\"previousStock\":1}";
+            String payloadJson = """
+                  {
+                    "eventId": "stock-decreased-002",
+                    "productId": 456,
+                    "currentStock": 0,
+                    "previousStock": 1
+                  }
+                  """;
             String messageKey = "456";
             Object mockStockEvent = new Object();
 
-            JsonNode mockJsonNode = mock(JsonNode.class);
-            JsonNode mockCurrentStockNode = mock(JsonNode.class);
-
             when(eventDeserializer.deserialize(payloadJson, Object.class))
                     .thenReturn(mockStockEvent);
-            when(objectMapper.readTree(payloadJson))
-                    .thenReturn(mockJsonNode);
-            when(mockJsonNode.get("currentStock")).thenReturn(mockCurrentStockNode);
-            when(mockCurrentStockNode.asInt()).thenReturn(0); // 재고 소진
+            when(eventHandledService.isAlreadyHandled("stock-decreased-002"))
+                    .thenReturn(false);
 
             // act
             stockEventHandler.handle(eventType, payloadJson, messageKey);
@@ -115,6 +131,7 @@ class StockEventHandlerTest {
             verify(cacheEvictService).evictProductCache(456L);
             verify(cacheEvictService).evictProductListCache(); // 추가 캐시 무효화
             verify(metricsService).increaseSalesCount(456L);
+            verify(eventHandledService).markAsHandled("stock-decreased-002", "StockDecreasedEvent", "456");
         }
 
         @Test
@@ -122,9 +139,16 @@ class StockEventHandlerTest {
         void handle_StockDecreasedEventThrowsException_ReThrowsException() {
             // arrange
             String eventType = "StockDecreasedEvent";
-            String payloadJson = "{\"productId\":456}";
+            String payloadJson = """
+                  {
+                    "eventId": "stock-decreased-003",
+                    "productId": 456
+                  }
+                  """;
             String messageKey = "456";
 
+            when(eventHandledService.isAlreadyHandled("stock-decreased-003"))
+                    .thenReturn(false);
             when(eventDeserializer.deserialize(any(), any()))
                     .thenThrow(new RuntimeException("역직렬화 실패"));
 
@@ -132,6 +156,36 @@ class StockEventHandlerTest {
             assertThatThrownBy(() -> stockEventHandler.handle(eventType, payloadJson, messageKey))
                     .isInstanceOf(RuntimeException.class)
                     .hasMessage("역직렬화 실패");
+
+            // 예외 발생 시 완료 기록하지 않음
+            verify(eventHandledService, never()).markAsHandled(any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("중복 재고 감소 이벤트는 처리하지 않는다.")
+        void handle_DuplicateStockDecreasedEvent_SkipsProcessing() {
+            // arrange
+            String eventType = "StockDecreasedEvent";
+            String payloadJson = """
+                  {
+                    "eventId": "stock-decreased-duplicate",
+                    "productId": 456,
+                    "currentStock": 5
+                  }
+                  """;
+            String messageKey = "456";
+
+            when(eventHandledService.isAlreadyHandled("stock-decreased-duplicate"))
+                    .thenReturn(true); // 이미 처리됨
+
+            // act
+            stockEventHandler.handle(eventType, payloadJson, messageKey);
+
+            // assert - 비즈니스 로직 호출 안됨
+            verify(eventLogService, never()).saveEventLog(any(), any(), any(), any());
+            verify(cacheEvictService, never()).evictProductCache(any());
+            verify(metricsService, never()).increaseSalesCount(any());
+            verify(eventHandledService, never()).markAsHandled(any(), any(), any());
         }
     }
 
@@ -144,22 +198,21 @@ class StockEventHandlerTest {
         void handle_ValidStockIncreasedEvent_ProcessesSuccessfully() throws Exception {
             // arrange
             String eventType = "StockIncreasedEvent";
-            String payloadJson = "{\"productId\":456,\"currentStock\":10,\"previousStock\":5}";
+            String payloadJson = """
+                  {
+                    "eventId": "stock-increased-001",
+                    "productId": 456,
+                    "currentStock": 10,
+                    "previousStock": 5
+                  }
+                  """;
             String messageKey = "456";
             Object mockStockEvent = new Object();
 
-            JsonNode mockJsonNode = mock(JsonNode.class);
-            JsonNode mockPreviousStockNode = mock(JsonNode.class);
-            JsonNode mockCurrentStockNode = mock(JsonNode.class);
-
             when(eventDeserializer.deserialize(payloadJson, Object.class))
                     .thenReturn(mockStockEvent);
-            when(objectMapper.readTree(payloadJson))
-                    .thenReturn(mockJsonNode);
-            when(mockJsonNode.get("previousStock")).thenReturn(mockPreviousStockNode);
-            when(mockJsonNode.get("currentStock")).thenReturn(mockCurrentStockNode);
-            when(mockPreviousStockNode.asInt()).thenReturn(5);
-            when(mockCurrentStockNode.asInt()).thenReturn(10);
+            when(eventHandledService.isAlreadyHandled("stock-increased-001"))
+                    .thenReturn(false);
 
             // act
             stockEventHandler.handle(eventType, payloadJson, messageKey);
@@ -167,7 +220,7 @@ class StockEventHandlerTest {
             // assert
             verify(eventLogService).saveEventLog(mockStockEvent, "StockIncreasedEvent", "456", "PRODUCT");
             verify(cacheEvictService).evictProductCache(456L);
-            verify(objectMapper).readTree(payloadJson);
+            verify(eventHandledService).markAsHandled("stock-increased-001", "StockIncreasedEvent", "456");
         }
 
         @Test
@@ -175,22 +228,21 @@ class StockEventHandlerTest {
         void handle_StockIncreasedFromZero_EvictsProductListCache() throws Exception {
             // arrange
             String eventType = "StockIncreasedEvent";
-            String payloadJson = "{\"productId\":456,\"currentStock\":5,\"previousStock\":0}";
+            String payloadJson = """
+                  {
+                    "eventId": "stock-increased-002",
+                    "productId": 456,
+                    "currentStock": 5,
+                    "previousStock": 0
+                  }
+                  """;
             String messageKey = "456";
             Object mockStockEvent = new Object();
 
-            JsonNode mockJsonNode = mock(JsonNode.class);
-            JsonNode mockPreviousStockNode = mock(JsonNode.class);
-            JsonNode mockCurrentStockNode = mock(JsonNode.class);
-
             when(eventDeserializer.deserialize(payloadJson, Object.class))
                     .thenReturn(mockStockEvent);
-            when(objectMapper.readTree(payloadJson))
-                    .thenReturn(mockJsonNode);
-            when(mockJsonNode.get("previousStock")).thenReturn(mockPreviousStockNode);
-            when(mockJsonNode.get("currentStock")).thenReturn(mockCurrentStockNode);
-            when(mockPreviousStockNode.asInt()).thenReturn(0); // 품절 상태였음
-            when(mockCurrentStockNode.asInt()).thenReturn(5);  // 재입고됨
+            when(eventHandledService.isAlreadyHandled("stock-increased-002"))
+                    .thenReturn(false);
 
             // act
             stockEventHandler.handle(eventType, payloadJson, messageKey);
@@ -199,6 +251,7 @@ class StockEventHandlerTest {
             verify(eventLogService).saveEventLog(mockStockEvent, "StockIncreasedEvent", "456", "PRODUCT");
             verify(cacheEvictService).evictProductCache(456L);
             verify(cacheEvictService).evictProductListCache(); // 품절 복구로 인한 추가 캐시 무효화
+            verify(eventHandledService).markAsHandled("stock-increased-002", "StockIncreasedEvent", "456");
         }
 
         @Test
@@ -206,9 +259,16 @@ class StockEventHandlerTest {
         void handle_StockIncreasedEventThrowsException_ReThrowsException() {
             // arrange
             String eventType = "StockIncreasedEvent";
-            String payloadJson = "{\"productId\":456}";
+            String payloadJson = """
+                  {
+                    "eventId": "stock-increased-003",
+                    "productId": 456
+                  }
+                  """;
             String messageKey = "456";
 
+            when(eventHandledService.isAlreadyHandled("stock-increased-003"))
+                    .thenReturn(false);
             when(eventDeserializer.deserialize(any(), any()))
                     .thenThrow(new RuntimeException("역직렬화 실패"));
 
@@ -216,6 +276,8 @@ class StockEventHandlerTest {
             assertThatThrownBy(() -> stockEventHandler.handle(eventType, payloadJson, messageKey))
                     .isInstanceOf(RuntimeException.class)
                     .hasMessage("역직렬화 실패");
+
+            verify(eventHandledService, never()).markAsHandled(any(), any(), any());
         }
     }
 
@@ -228,8 +290,16 @@ class StockEventHandlerTest {
         void handle_UnsupportedEventType_ThrowsIllegalArgumentException() {
             // arrange
             String eventType = "UnsupportedEvent";
-            String payloadJson = "{\"data\":\"test\"}";
+            String payloadJson = """
+                  {
+                    "eventId": "unsupported-001",
+                    "data": "test"
+                  }
+                  """;
             String messageKey = "123";
+
+            when(eventHandledService.isAlreadyHandled("unsupported-001"))
+                    .thenReturn(false);
 
             // act & assert
             assertThatThrownBy(() -> stockEventHandler.handle(eventType, payloadJson, messageKey))
@@ -247,8 +317,16 @@ class StockEventHandlerTest {
         void handle_InvalidMessageKey_ThrowsNumberFormatException() {
             // arrange
             String eventType = "StockDecreasedEvent";
-            String payloadJson = "{\"productId\":456}";
+            String payloadJson = """
+                  {
+                    "eventId": "stock-invalid-001",
+                    "productId": 456
+                  }
+                  """;
             String messageKey = "invalid";
+
+            when(eventHandledService.isAlreadyHandled("stock-invalid-001"))
+                    .thenReturn(false);
 
             // act & assert
             assertThatThrownBy(() -> stockEventHandler.handle(eventType, payloadJson, messageKey))
