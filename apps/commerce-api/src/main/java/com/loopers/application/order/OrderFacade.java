@@ -49,6 +49,8 @@ public class OrderFacade {
     private final ApplicationEventPublisher eventPublisher;
     private final KafkaEventPublisher kafkaEventPublisher;
 
+    private final ApplicationEventPublisher eventPublisher;
+
     @Transactional
     public Order placeOrder(String userId, OrderInfo orderInfo) {
 

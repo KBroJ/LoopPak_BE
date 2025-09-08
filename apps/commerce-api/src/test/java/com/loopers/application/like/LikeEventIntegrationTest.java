@@ -44,7 +44,7 @@ class LikeEventIntegrationTest {
     @Autowired private KafkaTemplate<Object, Object> kafkaTemplate;
     @Autowired private KafkaCleanUp kafkaCleanUp;
     @Autowired private ObjectMapper objectMapper;
-
+  
     @Autowired private DatabaseCleanUp databaseCleanUp;
 
     private UserInfo testUser;
