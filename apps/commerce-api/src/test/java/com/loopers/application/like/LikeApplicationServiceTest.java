@@ -106,34 +106,30 @@ class LikeApplicationServiceTest {
         }
 
         @Test
-        @DisplayName("좋아요가 등록되면 상품의 likeCount가 1 증가한다.")
-        void increaseLikeCount_whenLiked() {
+        @DisplayName("좋아요가 등록되면 좋아요 데이터가 저장된다.")
+        void saveLikeData_whenLiked() {
             // act
             likeFacade.like(userInfo.id(), product1.getId(), LikeType.PRODUCT);
             
-            // assert
+            // assert - 좋아요 데이터 저장 확인 (Producer 역할)
             Optional<Like> result = likeRepository.findByUserIdAndTargetIdAndType(userInfo.id(), product1.getId(), LikeType.PRODUCT);
             assertThat(result).isPresent();
-
-            Product updatedProduct = productRepository.productInfo(product1.getId()).get();
-            assertThat(updatedProduct.getLikeCount()).isEqualTo(1);
+            // 집계는 Commerce-Collector에서 처리하므로 여기서는 검증하지 않음
         }
 
         @Test
-        @DisplayName("등록된 좋아요가 취소되면 상품의 likeCount가 1 감소한다.")
-        void decreaseLikeCount_whenUnliked() {
+        @DisplayName("등록된 좋아요가 취소되면 좋아요 데이터가 삭제된다.")
+        void removeLikeData_whenUnliked() {
             // arrange
             likeFacade.like(userInfo.id(), product1.getId(), LikeType.PRODUCT);
 
             // act
             likeFacade.unlike(userInfo.id(), product1.getId(), LikeType.PRODUCT);
 
-            // assert
+            // assert - 좋아요 데이터 삭제 확인 (Producer 역할)
             Optional<Like> result = likeRepository.findByUserIdAndTargetIdAndType(userInfo.id(), product1.getId(), LikeType.PRODUCT);
             assertThat(result).isEmpty();
-
-            Product updatedProduct = productRepository.productInfo(product1.getId()).get();
-            assertThat(updatedProduct.getLikeCount()).isZero();
+            // 집계는 Commerce-Collector에서 처리하므로 여기서는 검증하지 않음
         }
 
     }

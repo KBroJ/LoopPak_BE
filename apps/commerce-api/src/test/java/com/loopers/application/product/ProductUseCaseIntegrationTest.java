@@ -159,22 +159,21 @@ class ProductUseCaseIntegrationTest {
     @DisplayName("상품 상세 조회")
     @Nested
     class GetProductDetail {
-        @DisplayName("성공: productId로 특정 상품 조회 시 해당 상품 정보와 좋아요 수가 반환된다.")
+        @DisplayName("성공: productId로 특정 상품 조회 시 해당 상품 정보가 반환된다.")
         @Test
         void returnProductInfo_whenFindByProductId() {
             // arrange
             ProductResponse created = productFacade.create(brandAId, "테스트상품", "설명", 200, 10, 10, ProductStatus.ACTIVE);
-            LikeFacade.like(1L, created.productId(), LikeType.PRODUCT);
-            LikeFacade.like(2L, created.productId(), LikeType.PRODUCT);
             
             // act
             ProductResponse result = productQueryService.getProductDetail(created.productId());
 
-            // assert
+            // assert - 상품 정보 확인 (집계는 Commerce-Collector에서 처리)
             assertAll(
                     () -> assertThat(result).isNotNull(),
                     () -> assertThat(result.productId()).isEqualTo(created.productId()),
-                    () -> assertThat(result.likeCount()).isEqualTo(2)
+                    () -> assertThat(result.name()).isEqualTo("테스트상품"),
+                    () -> assertThat(result.price()).isEqualTo(200)
             );
         }
 

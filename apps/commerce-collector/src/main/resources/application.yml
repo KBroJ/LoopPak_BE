@@ -1,0 +1,61 @@
+server:
+    shutdown: graceful
+    tomcat:
+        threads:
+            max: 200
+            min-spare: 10
+        connection-timeout: 1m
+        max-connections: 8192
+        accept-count: 100
+        keep-alive-timeout: 60s
+    max-http-request-header-size: 8KB
+
+spring:
+    main:
+        web-application-type: servlet
+    application:
+        name: commerce-collector
+    profiles:
+        active: local
+    config:
+        import:
+            - jpa.yml
+            - redis.yml
+            - kafka.yml
+            - logging.yml
+            - monitoring.yml
+
+---
+spring:
+    config:
+        activate:
+            on-profile: local, test
+
+server:
+    port: 8084
+
+management:
+    server:
+        port: 8085
+
+---
+spring:
+    config:
+        activate:
+            on-profile: dev
+
+---
+spring:
+    config:
+        activate:
+            on-profile: qa
+
+---
+spring:
+    config:
+        activate:
+            on-profile: prd
+
+springdoc:
+    api-docs:
+        enabled: false

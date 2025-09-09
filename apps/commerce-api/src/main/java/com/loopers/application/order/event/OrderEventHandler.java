@@ -2,6 +2,8 @@ package com.loopers.application.order.event;
 
 import com.loopers.domain.coupon.UserCoupon;
 import com.loopers.domain.coupon.UserCouponRepository;
+import com.loopers.domain.users.User;
+import com.loopers.domain.users.UserRepository;
 import com.loopers.support.error.CoreException;
 import com.loopers.support.error.ErrorType;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +21,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 public class OrderEventHandler {
 
     private final UserCouponRepository userCouponRepository;
+    private final UserRepository userRepository;
 
     /**
      * 주문 생성 후 쿠폰 사용 처리
@@ -29,7 +32,12 @@ public class OrderEventHandler {
 
         // === 오직 쿠폰 사용 처리만 ===
         if (event.couponId() != null) {
-            processCouponUsage(event.couponId(), event.userId()); // 예외 발생 시 트랜잭션 롤백!
+            // String userId를 Long으로 변환
+            User user = userRepository.findByUserId(event.userId())
+                    .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "사용자 정보를 찾을 수 없습니다."));
+            Long userInternalId = user.getId();
+            
+            processCouponUsage(event.couponId(), userInternalId); // 예외 발생 시 트랜잭션 롤백!
             log.info("쿠폰 사용 처리 완료 - orderId: {}, couponId: {}", event.orderId(), event.couponId());
         } else {
             log.info("쿠폰 없음 - 쿠폰 사용 처리 스킵 - orderId: {}", event.orderId());

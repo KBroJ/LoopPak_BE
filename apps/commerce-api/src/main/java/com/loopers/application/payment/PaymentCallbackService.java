@@ -8,6 +8,7 @@ import com.loopers.domain.order.OrderRepository;
 import com.loopers.domain.payment.Payment;
 import com.loopers.domain.payment.PaymentRepository;
 import com.loopers.domain.payment.PaymentStatus;
+import com.loopers.infrastructure.event.KafkaEventPublisher;
 import com.loopers.interfaces.api.payment.PgCallbackRequest;
 import com.loopers.support.error.CoreException;
 import com.loopers.support.error.ErrorType;
@@ -29,6 +30,7 @@ public class PaymentCallbackService {
     private final OrderRepository orderRepository;
     private final PaymentRecoveryService paymentRecoveryService;
     private final ApplicationEventPublisher eventPublisher;
+    private final KafkaEventPublisher kafkaEventPublisher;
 
     @Transactional
     public void handlePaymentCallback(PgCallbackRequest callbackRequest) {
@@ -129,6 +131,10 @@ public class PaymentCallbackService {
             );
             eventPublisher.publishEvent(successEvent);
             log.info("결제 성공 이벤트 발행 - orderId: {}, paymentType: {}", payment.getOrderId(), paymentType);
+
+            kafkaEventPublisher.publish("order-events", payment.getOrderId().toString(), successEvent);
+            log.info("결제 성공 Kafka 이벤트 발행 - orderId: {}, paymentType: {}", payment.getOrderId(), paymentType);
+
         } else {
             PaymentFailureEvent failureEvent = PaymentFailureEvent.of(
                     payment.getOrderId(),
@@ -141,6 +147,10 @@ public class PaymentCallbackService {
             );
             eventPublisher.publishEvent(failureEvent);
             log.info("결제 실패 이벤트 발행 - orderId: {}, paymentType: {}", payment.getOrderId(), paymentType);
+
+            kafkaEventPublisher.publish("order-events", payment.getOrderId().toString(), failureEvent);
+            log.info("결제 실패 Kafka 이벤트 발행 - orderId: {}, paymentType: {}", payment.getOrderId(), paymentType);
+
         }
     }
 

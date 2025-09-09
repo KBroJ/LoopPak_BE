@@ -102,20 +102,31 @@ public class Product extends BaseEntity {
         this.price -= amount;
     }
 
-    public void increaseStock(int quantity) {
+    public StockChangeResult increaseStock(int quantity) {
         if (quantity <= 0) {
             throw new CoreException(ErrorType.BAD_REQUEST, "수량은 0보다 커야 합니다.");
         }
+
+        int previousStock = this.stock;  // 변경 전 재고 기록
         this.stock += quantity;
+
+        // 이벤트 생성에 필요한 모든 정보 반환
+        return StockChangeResult.increased(this.getId(), previousStock, this.stock, quantity);
     }
-    public void decreaseStock(int quantity) {
+
+    public StockChangeResult decreaseStock(int quantity) {
         if (quantity <= 0) {
             throw new CoreException(ErrorType.BAD_REQUEST, "수량은 0보다 커야 합니다.");
         }
         if (this.stock < quantity) {
             throw new CoreException(ErrorType.BAD_REQUEST, "재고가 부족합니다.");
         }
+
+        int previousStock = this.stock;  // 변경 전 재고 기록
         this.stock -= quantity;
+
+        // 이벤트 생성에 필요한 모든 정보 반환
+        return StockChangeResult.decreased(this.getId(), previousStock, this.stock, quantity);
     }
 
     public void activate() {

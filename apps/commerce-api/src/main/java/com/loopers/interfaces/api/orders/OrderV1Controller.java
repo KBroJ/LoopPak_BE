@@ -20,7 +20,7 @@ public class OrderV1Controller implements OrderV1ApiSpec {
     @Override
     @PostMapping
     public ApiResponse<OrderV1Dto.OrderResponse> placeOrder(
-            @RequestHeader("X-USER-ID") Long userId,
+            @RequestHeader("X-USER-ID") String userId,
             @RequestBody OrderV1Dto.OrderInfo request) {
 
         List<OrderItemInfo> itemInfos = request.items().stream()
@@ -52,7 +52,7 @@ public class OrderV1Controller implements OrderV1ApiSpec {
     @Override
     @GetMapping
     public ApiResponse<Page<OrderV1Dto.OrderSummary>> getMyOrders(
-            @RequestHeader("X-USER-ID") Long userId,
+            @RequestHeader("X-USER-ID") String userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 

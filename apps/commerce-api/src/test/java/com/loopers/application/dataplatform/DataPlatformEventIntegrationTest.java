@@ -77,7 +77,7 @@ class DataPlatformEventIntegrationTest {
         );
 
         // When: 포인트 결제 (즉시 완료됨)
-        Order order = orderFacade.placeOrder(testUser.id(), orderInfo);
+        Order order = orderFacade.placeOrder(testUser.userId(), orderInfo);
 
         // 비동기 이벤트 처리를 위한 대기
         Thread.sleep(500);
@@ -114,7 +114,7 @@ class DataPlatformEventIntegrationTest {
         );
 
         // 카드 결제 주문 생성 (PENDING 상태)
-        Order order = orderFacade.placeOrder(testUser.id(), orderInfo);
+        Order order = orderFacade.placeOrder(testUser.userId(), orderInfo);
         
         // Payment 조회 (transactionKey로 콜백 시뮬레이션)
         Payment payment = paymentRepository.findByOrderId(order.getId()).orElseThrow();
@@ -179,7 +179,7 @@ class DataPlatformEventIntegrationTest {
         );
 
         // 카드 결제 주문 생성 (PENDING 상태)
-        Order order = orderFacade.placeOrder(testUser.id(), orderInfo);
+        Order order = orderFacade.placeOrder(testUser.userId(), orderInfo);
         
         // Payment 조회 (transactionKey로 콜백 시뮬레이션)
         Payment payment = paymentRepository.findByOrderId(order.getId()).orElseThrow();
