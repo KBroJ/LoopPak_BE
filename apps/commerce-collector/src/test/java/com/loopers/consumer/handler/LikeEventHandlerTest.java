@@ -7,6 +7,7 @@ import com.loopers.application.eventhandler.LikeEventHandler;
 import com.loopers.application.eventlog.EventLogService;
 import com.loopers.application.metrics.MetricsService;
 import com.loopers.common.EventDeserializer;
+import com.loopers.infrastructure.kafka.KafkaEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -33,6 +34,8 @@ class LikeEventHandlerTest {
     private EventDeserializer eventDeserializer;
     @Mock
     private EventHandledService eventHandledService;
+    @Mock
+    private KafkaEventPublisher kafkaEventPublisher;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -46,7 +49,8 @@ class LikeEventHandlerTest {
                 cacheEvictService,
                 eventDeserializer,
                 eventHandledService,
-                objectMapper
+                objectMapper,
+                kafkaEventPublisher
         );
     }
 
