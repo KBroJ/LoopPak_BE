@@ -32,7 +32,9 @@ public class ProductV1Dto {
             int stock,
             ProductStatus status,
             Long brandId,
-            long likeCount
+            long likeCount,
+            Integer currentRank,        // 현재 순위 (1위부터, 순위에 없으면 null)
+            Double currentScore         // 현재 점수 (순위에 없으면 null)
     ) {
         public static Detail from(ProductResponse response) {
             return new Detail(
@@ -43,7 +45,9 @@ public class ProductV1Dto {
                     response.stock(),
                     response.productStatus(),
                     response.brandId(),
-                    response.likeCount()
+                    response.likeCount(),
+                    response.currentRank(),    // 랭킹 정보 매핑
+                    response.currentScore()    // 점수 정보 매핑
             );
         }
     }
