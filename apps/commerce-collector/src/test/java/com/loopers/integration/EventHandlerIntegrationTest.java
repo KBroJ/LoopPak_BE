@@ -1,9 +1,9 @@
 package com.loopers.integration;
 
-import com.loopers.collector.domain.eventhandled.EventHandledRepository;
-import com.loopers.collector.domain.eventlog.EventLogRepository;
-import com.loopers.collector.domain.metrics.ProductMetricsRepository;
-import com.loopers.consumer.handler.LikeEventHandler;
+import com.loopers.domain.eventhandled.EventHandledRepository;
+import com.loopers.domain.eventlog.EventLogRepository;
+import com.loopers.domain.metrics.ProductMetricsRepository;
+import com.loopers.application.eventhandler.LikeEventHandler;
 import com.loopers.utils.DatabaseCleanUp;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;

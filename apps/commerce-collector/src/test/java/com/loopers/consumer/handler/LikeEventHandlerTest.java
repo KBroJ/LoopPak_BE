@@ -1,11 +1,12 @@
 package com.loopers.consumer.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.loopers.collector.application.cache.CacheEvictService;
-import com.loopers.collector.application.eventhandled.EventHandledService;
-import com.loopers.collector.application.eventlog.EventLogService;
-import com.loopers.collector.application.metrics.MetricsService;
-import com.loopers.collector.common.EventDeserializer;
+import com.loopers.application.cache.CacheEvictService;
+import com.loopers.application.eventhandled.EventHandledService;
+import com.loopers.application.eventhandler.LikeEventHandler;
+import com.loopers.application.eventlog.EventLogService;
+import com.loopers.application.metrics.MetricsService;
+import com.loopers.common.EventDeserializer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
