@@ -6,6 +6,8 @@ import com.loopers.application.eventhandled.EventHandledService;
 import com.loopers.application.eventhandler.LikeEventHandler;
 import com.loopers.application.eventlog.EventLogService;
 import com.loopers.application.metrics.MetricsService;
+import com.loopers.application.ranking.RankingActionType;
+import com.loopers.application.ranking.RankingUpdateMessage;
 import com.loopers.common.EventDeserializer;
 import com.loopers.infrastructure.kafka.KafkaEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
@@ -298,6 +300,75 @@ class LikeEventHandlerTest {
             ).isInstanceOf(RuntimeException.class)
                     .hasMessageContaining("eventId 추출 실패");
         }
+    }
+
+    @Test
+    @DisplayName("좋아요 추가 시 랭킹 이벤트가 발행된다.")
+    void handle_LikeAddedEvent_PublishesRankingEvent() throws Exception {
+        // arrange
+        String eventType = "LikeAddedEvent";
+        String payloadJson = """
+          {
+              "eventId": "like-added-001",
+              "userId": 123,
+              "productId": 456
+          }
+          """;
+        String messageKey = "456";
+
+        // Mock 설정
+        when(eventHandledService.isAlreadyHandled("like-added-001")).thenReturn(false);
+        when(eventDeserializer.deserialize(payloadJson, Object.class)).thenReturn(new Object());
+
+        // act
+        likeEventHandler.handle(eventType, payloadJson, messageKey);
+
+        // assert - 랭킹 이벤트 발행 검증
+        verify(kafkaEventPublisher).publish(
+                eq("ranking-events"),
+                eq("456"),
+                argThat(message -> {
+
+                    RankingUpdateMessage rankingMessage = (RankingUpdateMessage) message;
+
+                    return  rankingMessage.productId().equals(456L) &&
+                            rankingMessage.actionType() == RankingActionType.LIKE_ADDED &&
+                            rankingMessage.eventId().equals("like-added-001_RANKING");
+                })
+        );
+    }
+
+    @Test
+    @DisplayName("좋아요 취소 시 랭킹 이벤트가 발행된다.")
+    void handle_LikeRemovedEvent_PublishesRankingEvent() throws Exception {
+        // arrange
+        String eventType = "LikeRemovedEvent";
+        String payloadJson = """
+          {
+              "eventId": "like-removed-001",
+              "userId": 123,
+              "productId": 456
+          }
+          """;
+        String messageKey = "456";
+
+        when(eventHandledService.isAlreadyHandled("like-removed-001")).thenReturn(false);
+        when(eventDeserializer.deserialize(payloadJson, Object.class)).thenReturn(new Object());
+
+        // act
+        likeEventHandler.handle(eventType, payloadJson, messageKey);
+
+        // assert - 랭킹 이벤트 발행 검증 (LIKE_REMOVED)
+        verify(kafkaEventPublisher).publish(
+                eq("ranking-events"),
+                eq("456"),
+                argThat(message -> {
+                    RankingUpdateMessage rankingMessage = (RankingUpdateMessage) message;
+                    return rankingMessage.productId().equals(456L) &&
+                            rankingMessage.actionType() == RankingActionType.LIKE_REMOVED &&
+                            rankingMessage.eventId().equals("like-removed-001_RANKING");
+                })
+        );
     }
 
 }
