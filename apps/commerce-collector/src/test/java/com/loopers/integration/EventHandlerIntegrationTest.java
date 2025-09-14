@@ -1,16 +1,16 @@
 package com.loopers.integration;
 
-import com.loopers.collector.domain.eventhandled.EventHandledRepository;
-import com.loopers.collector.domain.eventlog.EventLogRepository;
-import com.loopers.collector.domain.metrics.ProductMetricsRepository;
-import com.loopers.consumer.handler.LikeEventHandler;
+import com.loopers.application.eventhandler.RankingEventHandler;
+import com.loopers.domain.eventhandled.EventHandledRepository;
+import com.loopers.domain.eventlog.EventLogRepository;
+import com.loopers.domain.metrics.ProductMetricsRepository;
+import com.loopers.application.eventhandler.LikeEventHandler;
 import com.loopers.utils.DatabaseCleanUp;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import com.loopers.utils.RedisCleanUp;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.RedisTemplate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -20,6 +20,8 @@ class EventHandlerIntegrationTest {
 
     @Autowired
     private LikeEventHandler likeEventHandler;
+    @Autowired
+    private RankingEventHandler rankingEventHandler;
 
     @Autowired
     private EventHandledRepository eventHandledRepository;
@@ -29,11 +31,17 @@ class EventHandlerIntegrationTest {
     private ProductMetricsRepository productMetricsRepository;
 
     @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
+
+    @Autowired
     private DatabaseCleanUp databaseCleanUp;
+    @Autowired
+    private RedisCleanUp redisCleanUp;
 
     @AfterEach
     void tearDown() {
         databaseCleanUp.truncateAllTables();
+        redisCleanUp.truncateAll();
     }
 
     @DisplayName("LikeEventHandler 멱등성 테스트")
@@ -156,6 +164,49 @@ class EventHandlerIntegrationTest {
             var savedMetrics = productMetricsRepository.findByProductId(1L);
             assertThat(savedMetrics).isPresent();
             assertThat(savedMetrics.get().getLikeCount()).isEqualTo(1);
+        }
+    }
+
+    // 테스트 클래스로 추가
+    @DisplayName("RankingEventHandler Redis 통합 테스트")
+    @Nested
+    class RankingEventHandlerRedisTest {
+
+        @Test
+        @DisplayName("좋아요 추가 랭킹 메시지 처리 시 실제 Redis ZSET에 점수가 저장된다")
+        void handleLikeAddedRankingMessage_SavesScoreToRedis() throws Exception {
+            // arrange
+            String eventType = "RankingUpdateMessage";
+            String eventId = "ranking-redis-test-001";
+            Long productId = 456L;
+
+            String payloadJson = """
+              {
+                  "productId": %d,
+                  "actionType": "LIKE_ADDED",
+                  "eventId": "%s"
+              }
+              """.formatted(productId, eventId);
+            String messageKey = productId.toString();
+
+            String expectedKey = "ranking:all:" + java.time.LocalDate.now()
+                    .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
+            String expectedMember = "product:" + productId;
+
+            // act
+            rankingEventHandler.handle(eventType, payloadJson, messageKey);
+
+            // assert - 실제 Redis에서 확인
+            Double score = redisTemplate.opsForZSet().score(expectedKey, expectedMember);
+            assertThat(score).isEqualTo(0.2);
+
+            // TTL 확인
+            Long ttl = redisTemplate.getExpire(expectedKey);
+            assertThat(ttl).isLessThanOrEqualTo(172800L).isGreaterThan(172000L);
+
+            // 랭킹 조회 확인
+            Long rank = redisTemplate.opsForZSet().reverseRank(expectedKey, expectedMember);
+            assertThat(rank).isEqualTo(0L); // 1등
         }
     }
 }
