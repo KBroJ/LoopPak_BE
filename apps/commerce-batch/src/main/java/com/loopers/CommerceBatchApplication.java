@@ -26,7 +26,7 @@ import java.util.TimeZone;
 @ConfigurationPropertiesScan
 @EnableJpaRepositories(basePackages = "com.loopers.infrastructure")
 @SpringBootApplication
-public class CommerceBatchApplication{
+public class CommerceBatchApplication implements CommandLineRunner {
 
     private final JobLauncher jobLauncher;  // 추가
     private final Job helloWorldJob;
@@ -41,6 +41,16 @@ public class CommerceBatchApplication{
         // Spring Boot 애플리케이션 실행
         // 배치 Job은 CommandLineRunner 또는 외부 스케줄러로 실행
         SpringApplication.run(CommerceBatchApplication.class, args);
+    }
+
+    // Job 수동 실행
+    @Override
+    public void run(String... args) throws Exception {
+        JobParameters params = new JobParametersBuilder()
+                .addLong("timestamp", System.currentTimeMillis()) // 실행시마다 다른 파라미터
+                .toJobParameters();
+
+        jobLauncher.run(helloWorldJob, params);
     }
 
 }
