@@ -1,0 +1,79 @@
+server:
+    shutdown: graceful
+    tomcat:
+        threads:
+            max: 200
+            min-spare: 10
+        connection-timeout: 1m
+        max-connections: 8192
+        accept-count: 100
+        keep-alive-timeout: 60s
+    max-http-request-header-size: 8KB
+
+logging:
+    level:
+        org.springframework.batch: DEBUG
+        com.loopers: DEBUG
+
+spring:
+    main:
+        web-application-type: servlet  # 다른 앱들과 동일
+    application:
+        name: commerce-batch
+    profiles:
+        active: local
+    config:
+        import:
+            - jpa.yml              # 다른 앱들과 공통
+            - redis.yml            # 나중에 랭킹 비교용으로 필요할 수 있음
+            - logging.yml          # 다른 앱들과 공통
+            - monitoring.yml       # 다른 앱들과 공통
+    jackson:
+        time-zone: Asia/Seoul      # api와 동일
+
+    # Spring Batch 전용 설정 (다른 앱에는 없는 부분)
+    batch:
+        job:
+            enabled: true         # Job 수동 실행
+            name: helloWorldJob   # 시작할 때 자동으로 이 Job 실행
+        jdbc:
+            initialize-schema: always  # 배치 메타데이터 테이블 자동 생성
+
+---
+spring:
+    config:
+        activate:
+            on-profile: local, test
+
+# collector 스타일 - 포트 분리
+server:
+    port: 8086
+
+management:
+    server:
+        port: 8087
+
+---
+spring:
+    config:
+        activate:
+            on-profile: dev
+
+---
+spring:
+    config:
+        activate:
+            on-profile: qa
+
+---
+spring:
+    config:
+        activate:
+            on-profile: prd
+
+# 배치 전용 - API docs 비활성화 (prd 환경에서)
+management:
+    endpoints:
+        web:
+            exposure:
+                include: health, info, metrics
