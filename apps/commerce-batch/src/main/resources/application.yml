@@ -39,6 +39,12 @@ spring:
         jdbc:
             initialize-schema: always  # 배치 메타데이터 테이블 자동 생성
 
+ranking:
+    weight:
+        like: 3.0      # 좋아요 가중치
+        sales: 2.0     # 판매량 가중치
+        view: 1.0      # 조회수 가중치
+
 ---
 spring:
     config:
