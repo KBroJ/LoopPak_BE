@@ -5,6 +5,7 @@ dependencies {
     implementation(project(":supports:jackson"))    // JSON 처리
     implementation(project(":supports:logging"))    // 로깅
     implementation(project(":supports:monitoring")) // 모니터링
+    implementation(project(":apps:commerce-collector"))
 
     // web
     implementation("org.springframework.boot:spring-boot-starter-web")
