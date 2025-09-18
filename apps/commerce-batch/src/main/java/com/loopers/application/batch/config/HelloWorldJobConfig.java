@@ -21,7 +21,7 @@ import org.springframework.transaction.PlatformTransactionManager;
  *       └── Tasklet (실제 작업 로직)
  */
 @Slf4j
-@Configuration
+//@Configuration
 @RequiredArgsConstructor
 public class HelloWorldJobConfig {
 
