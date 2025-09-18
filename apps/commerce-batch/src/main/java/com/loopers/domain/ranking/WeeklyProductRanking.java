@@ -137,4 +137,12 @@ public class WeeklyProductRanking {
         return ranking;
     }
 
+    /**
+     * 랭킹 순위 업데이트
+     * Writer에서 정렬 후 순위를 부여할 때 사용
+     */
+    public void updateRankPosition(Integer rankPosition) {
+        this.rankPosition = rankPosition;
+    }
+
 }
