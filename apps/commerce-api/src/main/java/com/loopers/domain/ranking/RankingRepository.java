@@ -66,4 +66,54 @@ public interface RankingRepository {
      */
     Double getProductScore(String date, Long productId);
 
+
+
+    /**
+     * 주간 랭킹 조회 (Materialized View 기반)
+     *
+     * 처리 방식:
+     * - Redis 대신 DB의 mv_product_rank_weekly 테이블 조회
+     * - Infrastructure에서 JPA로 구현
+     *
+     * @param yearWeek 년도-주차 (예: "2024-38")
+     * @param size 페이지 크기
+     * @param page 페이지 번호 (0부터 시작)
+     * @return 주간 랭킹 아이템 목록 (기존 RankingItem과 동일한 구조)
+     */
+    List<RankingItem> getWeeklyTopRankings(String yearWeek, int size, int page);
+
+    /**
+     * 주간 랭킹 전체 수 조회
+     *
+     * 용도: 페이징 메타데이터 생성 (전체 페이지 수 계산)
+     *
+     * @param yearWeek 년도-주차 (예: "2024-38")
+     * @return 해당 주차의 전체 랭킹 상품 수
+     */
+    long getTotalWeeklyRankingCount(String yearWeek);
+
+    /**
+     * 월간 랭킹 조회 (Materialized View 기반)
+     *
+     * 처리 방식:
+     * - Redis 대신 DB의 mv_product_rank_monthly 테이블 조회
+     * - Infrastructure에서 JPA로 구현
+     *
+     * @param yearMonth 년도-월 (예: "2024-09")
+     * @param size 페이지 크기
+     * @param page 페이지 번호 (0부터 시작)
+     * @return 월간 랭킹 아이템 목록 (기존 RankingItem과 동일한 구조)
+     */
+    List<RankingItem> getMonthlyTopRankings(String yearMonth, int size, int page);
+
+    /**
+     * 월간 랭킹 전체 수 조회
+     *
+     * 용도: 페이징 메타데이터 생성 (전체 페이지 수 계산)
+     *
+     * @param yearMonth 년도-월 (예: "2024-09")
+     * @return 해당 월의 전체 랭킹 상품 수
+     */
+    long getTotalMonthlyRankingCount(String yearMonth);
+
 }
