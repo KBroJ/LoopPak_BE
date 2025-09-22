@@ -1,9 +1,14 @@
 package com.loopers.infrastructure.ranking;
 
+import com.loopers.domain.ranking.MonthlyProductRanking;
 import com.loopers.domain.ranking.RankingItem;
 import com.loopers.domain.ranking.RankingRepository;
+import com.loopers.domain.ranking.WeeklyProductRanking;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Component;
@@ -12,6 +17,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -24,6 +30,9 @@ public class RankingRepositoryImpl implements RankingRepository {
     private static final String RANKING_KEY_PREFIX = "ranking:all:";
     private static final String PRODUCT_MEMBER_PREFIX = "product:";
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
+
+    private final WeeklyProductRankingJpaRepository weeklyProductRankingJpaRepository;
+    private final MonthlyProductRankingJpaRepository monthlyProductRankingJpaRepository;
 
     /**
      * Top-N 랭킹 페이징 조회
@@ -229,6 +238,95 @@ public class RankingRepositoryImpl implements RankingRepository {
         } catch (NumberFormatException e) {
             log.warn("상품 ID 파싱 실패 - member: {}", member);
             return null;
+        }
+    }
+
+    @Override
+    public List<RankingItem> getWeeklyTopRankings(String yearWeek, int size, int page) {
+        try {
+            log.debug("주간 랭킹 조회 시작 - yearWeek: {}, size: {}, page: {}", yearWeek, size, page);
+
+            // 1. JPA로 WeeklyProductRanking 페이징 조회
+            Pageable pageable = PageRequest.of(page, size);
+            Page<WeeklyProductRanking> weeklyRankings = weeklyProductRankingJpaRepository.findByYearWeekOrderByRankPositionAsc(yearWeek, pageable);
+
+            // 2. Entity → Domain 객체 변환
+            List<RankingItem> rankingItems = weeklyRankings.getContent().stream()
+                    .map(entity -> RankingItem.of(
+                            entity.getRankPosition(),                    // rank
+                            entity.getRankingScore().doubleValue(),     // score
+                            entity.getProductId()                       // productId
+                    ))
+                    .collect(Collectors.toList());
+
+            log.debug("주간 랭킹 조회 완료 - yearWeek: {}, 조회된 아이템 수: {}", yearWeek, rankingItems.size());
+            return rankingItems;
+
+        } catch (Exception e) {
+            log.error("주간 랭킹 조회 실패 - yearWeek: {}, size: {}, page: {}, error: {}",
+                    yearWeek, size, page, e.getMessage(), e);
+            throw new RuntimeException("주간 랭킹 조회 실패", e);
+        }
+    }
+
+    @Override
+    public long getTotalWeeklyRankingCount(String yearWeek) {
+        try {
+            log.debug("주간 랭킹 전체 수 조회 - yearWeek: {}", yearWeek);
+
+            long count = weeklyProductRankingJpaRepository.countByYearWeek(yearWeek);
+
+            log.debug("주간 랭킹 전체 수 조회 완료 - yearWeek: {}, count: {}", yearWeek, count);
+            return count;
+
+        } catch (Exception e) {
+            log.error("주간 랭킹 전체 수 조회 실패 - yearWeek: {}, error: {}", yearWeek, e.getMessage(), e);
+            return 0L; // 에러 시 0 반환
+        }
+    }
+
+    @Override
+    public List<RankingItem> getMonthlyTopRankings(String yearMonth, int size, int page) {
+        try {
+            log.debug("월간 랭킹 조회 시작 - yearMonth: {}, size: {}, page: {}", yearMonth, size, page);
+
+            // 1. JPA로 MonthlyProductRanking 페이징 조회
+            Pageable pageable = PageRequest.of(page, size);
+            Page<MonthlyProductRanking> monthlyRankings =
+                    monthlyProductRankingJpaRepository.findByYearMonthOrderByRankPositionAsc(yearMonth, pageable);
+
+            // 2. Entity → Domain 객체 변환
+            List<RankingItem> rankingItems = monthlyRankings.getContent().stream()
+                    .map(entity -> RankingItem.of(
+                            entity.getRankPosition(),                    // rank
+                            entity.getRankingScore().doubleValue(),     // score
+                            entity.getProductId()                       // productId
+                    ))
+                    .collect(Collectors.toList());
+
+            log.debug("월간 랭킹 조회 완료 - yearMonth: {}, 조회된 아이템 수: {}", yearMonth, rankingItems.size());
+            return rankingItems;
+
+        } catch (Exception e) {
+            log.error("월간 랭킹 조회 실패 - yearMonth: {}, size: {}, page: {}, error: {}",
+                    yearMonth, size, page, e.getMessage(), e);
+            throw new RuntimeException("월간 랭킹 조회 실패", e);
+        }
+    }
+
+    @Override
+    public long getTotalMonthlyRankingCount(String yearMonth) {
+        try {
+            log.debug("월간 랭킹 전체 수 조회 - yearMonth: {}", yearMonth);
+
+            long count = monthlyProductRankingJpaRepository.countByYearMonth(yearMonth);
+
+            log.debug("월간 랭킹 전체 수 조회 완료 - yearMonth: {}, count: {}", yearMonth, count);
+            return count;
+
+        } catch (Exception e) {
+            log.error("월간 랭킹 전체 수 조회 실패 - yearMonth: {}, error: {}", yearMonth, e.getMessage(), e);
+            return 0L; // 에러 시 0 반환
         }
     }
 

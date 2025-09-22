@@ -1,5 +1,6 @@
 package com.loopers.interfaces.api.ranking;
 
+import com.loopers.application.ranking.BatchRankingQueryService;
 import com.loopers.application.ranking.RankingInfo;
 import com.loopers.application.ranking.RankingQueryService;
 import com.loopers.interfaces.api.ApiResponse;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -31,6 +33,7 @@ import java.util.stream.Collectors;
 public class RankingV1Controller implements RankingV1ApiSpec {
 
     private final RankingQueryService rankingQueryService;
+    private final BatchRankingQueryService batchRankingQueryService;
 
     // 날짜 형식 상수
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
@@ -51,6 +54,7 @@ public class RankingV1Controller implements RankingV1ApiSpec {
     @GetMapping("/api/v1/rankings")
     @Override
     public ApiResponse<RankingV1Dto.PageResponse> getRankings(
+            @RequestParam(required = false, defaultValue = "daily") String period,
             @RequestParam(required = false) String date,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "0") int page
@@ -58,6 +62,7 @@ public class RankingV1Controller implements RankingV1ApiSpec {
 
         try {
             // 1. 요청 파라미터 검증 및 정규화
+            String normalizedPeriod = normalizePeriod(period);
             String normalizedDate = normalizeDate(date);
             int normalizedSize = normalizeSize(size);
             int normalizedPage = normalizePage(page);
@@ -79,11 +84,69 @@ public class RankingV1Controller implements RankingV1ApiSpec {
             // 3. 성공 응답 반환
             return ApiResponse.success(rankingResponse);
 
+        } catch (IllegalArgumentException e) {
+            log.warn("잘못된 요청 파라미터 - period: {}, date: {}, size: {}, page: {}, error: {}",
+                    period, date, size, page, e.getMessage());
+            throw e; // Global Exception Handler가 400 Bad Request로 처리
         } catch (Exception e) {
-            log.error("랭킹 조회 실패 - date: {}, size: {}, page: {}, error: {}",
-                    date, size, page, e.getMessage(), e);
+            log.error("랭킹 조회 실패 - period: {}, date: {}, size: {}, page: {}, error: {}",
+                    period, date, size, page, e.getMessage(), e);
             throw e; // Global Exception Handler가 처리
         }
+    }
+
+    /**
+     * period별 적절한 Service 선택 및 호출
+     *
+     * @param period 조회 기간 (daily, weekly, monthly)
+     * @param date 조회 날짜 (yyyyMMdd)
+     * @param size 페이지 크기
+     * @param page 페이지 번호
+     * @return Service 호출 결과
+     */
+    private RankingInfo.PageResult selectServiceAndCall(String period, String date, int size, int page) {
+        switch (period) {
+            case "daily":
+                log.debug("일간 랭킹 서비스 호출 - Redis 기반");
+                return rankingQueryService.getRankings(date, size, page);
+
+            case "weekly":
+                log.debug("주간 랭킹 서비스 호출 - DB 배치 기반");
+                return batchRankingQueryService.getWeeklyRankings(date, size, page);
+
+            case "monthly":
+                log.debug("월간 랭킹 서비스 호출 - DB 배치 기반");
+                return batchRankingQueryService.getMonthlyRankings(date, size, page);
+
+            default:
+                throw new IllegalArgumentException("지원하지 않는 period: " + period);
+        }
+    }
+
+    /**
+     * period 파라미터 정규화
+     *
+     * @param period 요청된 기간 (daily, weekly, monthly 또는 null)
+     * @return 정규화된 기간 (소문자, 검증 완료)
+     */
+    private String normalizePeriod(String period) {
+        if (period == null || period.trim().isEmpty()) {
+            return "daily"; // 기본값
+        }
+
+        String normalized = period.toLowerCase().trim();
+
+        // 지원하는 period 목록
+        Set<String> supportedPeriods = Set.of("daily", "weekly", "monthly");
+
+        if (!supportedPeriods.contains(normalized)) {
+            throw new IllegalArgumentException(
+                    String.format("지원하지 않는 period: %s. 지원되는 값: %s",
+                            period, supportedPeriods)
+            );
+        }
+
+        return normalized;
     }
 
     /**
